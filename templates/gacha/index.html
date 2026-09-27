@@ -1,10 +1,143 @@
 {% extends "base.html" %}
 {% block title %}祈愿 · {{ app_name }}{% endblock %}
-{% block main_class %}gacha-page{% endblock %}
+{% block body_class %}gacha-body{% endblock %}
+{% block main_class %}gacha-stage{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/gacha.css">{% endblock %}
 
 {% block content %}
-<div class="panel" style="max-width:560px;margin:60px auto;text-align:center">
-  <p class="panel__title">抽卡界面</p>
-  <p style="color:var(--text-dim)">阶段 4 实现。</p>
+<!-- ================= 主区域：底部大图 ================= -->
+<div class="gacha-art" data-pool-art>
+  <img class="gacha-art__img" data-pool-bg src="/static/img/banner-default.svg" alt="">
+  <div class="gacha-art__fade" aria-hidden="true"></div>
 </div>
+
+<div class="gacha-head">
+  <div class="gacha-head__banner">
+    <img data-pool-banner hidden alt="">
+  </div>
+
+  <h1 class="gacha-head__title" data-pool-name>加载中…</h1>
+  <p class="gacha-head__desc" data-pool-desc></p>
+
+  <!-- UP 内容 -->
+  <div class="up-strip" data-pool-up hidden>
+    <div class="up-strip__label">UP</div>
+    <div class="up-strip__items" data-pool-up-items></div>
+  </div>
+
+  <!-- 概率说明 -->
+  <details class="rates">
+    <summary class="rates__summary">概率说明</summary>
+    <div class="rates__body" data-pool-rates></div>
+  </details>
+
+  <!-- 定轨面板（仅武器池） -->
+  <div class="epitomized" data-epitomized hidden>
+    <div class="epitomized__head">
+      <span class="epitomized__title">神铸定轨</span>
+      <span class="epitomized__points" data-epi-points></span>
+    </div>
+    <div class="epitomized__choices" data-epi-choices></div>
+    <p class="epitomized__hint">
+      命定值满后，下一个五星武器必定是定轨武器。换定轨或取消定轨会把命定值清零，
+      重选同一把则保留。
+    </p>
+  </div>
+</div>
+
+<!-- ================= 固定操作 UI ================= -->
+<aside class="wish-dock">
+  <div class="wish-dock__inner">
+
+    <!-- 货币：由服务端直接渲染，避免首屏空值与额外请求 -->
+    <div class="wallet">
+      <div class="wallet__item" title="原石">
+        <span class="wallet__icon wallet__icon--gem"></span>
+        <span class="wallet__value" data-cur-primogems>{{ current_user.currency.primogems if current_user.currency else 0 }}</span>
+      </div>
+      <div class="wallet__item" title="纠缠之缘">
+        <span class="wallet__icon wallet__icon--intertwined"></span>
+        <span class="wallet__value" data-cur-intertwined>{{ current_user.currency.intertwined_fate if current_user.currency else 0 }}</span>
+      </div>
+      <div class="wallet__item" title="相遇之缘">
+        <span class="wallet__icon wallet__icon--acquaint"></span>
+        <span class="wallet__value" data-cur-acquaint>{{ current_user.currency.acquaint_fate if current_user.currency else 0 }}</span>
+      </div>
+    </div>
+
+    <!-- 卡池名 + 保底进度 -->
+    <div class="pity-bar">
+      <div class="pity-bar__row">
+        <span class="pity-bar__pool" data-dock-pool>—</span>
+        <span class="pity-bar__count" data-dock-pity>—</span>
+      </div>
+      <div class="pity-bar__track">
+        <div class="pity-bar__fill" data-dock-fill style="width:0%"></div>
+      </div>
+      <div class="pity-bar__note" data-dock-note></div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="wish-actions">
+      <button type="button" class="btn btn--ghost btn--sm" data-open-switcher>
+        切换卡池
+      </button>
+      <button type="button" class="btn btn--primary" data-pull="1">单 抽</button>
+      <button type="button" class="btn btn--primary" data-pull="10">十 连</button>
+      <a class="btn btn--ghost btn--sm" href="/history">历史记录</a>
+    </div>
+
+    <div class="wish-dock__cost" data-dock-cost></div>
+  </div>
+</aside>
+
+<!-- ================= 卡池切换抽屉 ================= -->
+<div class="drawer" data-switcher hidden>
+  <div class="drawer__mask" data-close-switcher></div>
+  <div class="drawer__panel">
+    <div class="drawer__head">
+      <span>选择卡池</span>
+      <button type="button" class="drawer__close" data-close-switcher aria-label="关闭">×</button>
+    </div>
+    <div class="drawer__list" data-pool-list></div>
+  </div>
+</div>
+
+<!-- ================= 抽卡演出（所有卡池共用同一套动画） ================= -->
+<div class="wish" data-wish hidden>
+  <div class="wish__warp" data-wish-warp>
+    <div class="warp">
+      <span class="warp__ring"></span>
+      <span class="warp__ring warp__ring--2"></span>
+      <span class="warp__core"></span>
+      <span class="warp__ray"></span>
+      <span class="warp__ray warp__ray--2"></span>
+      <span class="warp__ray warp__ray--3"></span>
+    </div>
+  </div>
+
+  <div class="wish__grid" data-wish-grid></div>
+
+  <!-- 五星单独呈现：图片取自管理员为该物品设置的 image_url -->
+  <div class="wish__five" data-wish-five hidden>
+    <div class="five-burst" aria-hidden="true"></div>
+    <figure class="five-card">
+      <img class="five-card__img" data-five-img alt="">
+      <figcaption class="five-card__caption">
+        <span class="five-card__name" data-five-name></span>
+        <span class="five-card__tag" data-five-tag></span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="wish__ai" data-wish-ai hidden></div>
+
+  <div class="wish__footer">
+    <button type="button" class="btn btn--ghost btn--sm" data-wish-skip>跳过 / 关闭</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/gacha.js"></script>
 {% endblock %}

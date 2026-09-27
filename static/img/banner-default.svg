@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900"
+     preserveAspectRatio="xMidYMax slice" role="img" aria-label="默认卡池背景">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0d1220"/>
+      <stop offset="52%"  stop-color="#1b2740"/>
+      <stop offset="100%" stop-color="#2b3a5c"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="72%" r="58%">
+      <stop offset="0%"   stop-color="#ffcc4d" stop-opacity=".28"/>
+      <stop offset="60%"  stop-color="#5a82c8" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#0d1220" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ridge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#3a4c72"/>
+      <stop offset="100%" stop-color="#141c2e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+
+  <!-- 星点 -->
+  <g fill="#ffe9b8" opacity=".5">
+    <circle cx="180" cy="140" r="2.2"/><circle cx="420" cy="90"  r="1.6"/>
+    <circle cx="700" cy="170" r="2.6"/><circle cx="980" cy="110" r="1.8"/>
+    <circle cx="1230" cy="200" r="2.4"/><circle cx="1450" cy="120" r="1.7"/>
+    <circle cx="320" cy="260" r="1.5"/><circle cx="860" cy="60"  r="1.9"/>
+    <circle cx="1120" cy="300" r="1.6"/><circle cx="560" cy="220" r="2.1"/>
+  </g>
+
+  <rect width="1600" height="900" fill="url(#halo)"/>
+
+  <!-- 远山剪影 -->
+  <path d="M0 700 L180 560 L320 660 L470 520 L640 690 L790 580 L980 720
+           L1150 600 L1320 700 L1470 620 L1600 720 L1600 900 L0 900 Z"
+        fill="url(#ridge)" opacity=".85"/>
+  <path d="M0 800 L200 720 L380 790 L560 700 L760 800 L940 730
+           L1140 810 L1340 740 L1600 820 L1600 900 L0 900 Z"
+        fill="#0f1626" opacity=".9"/>
+
+  <!-- 地平线光带 -->
+  <rect y="694" width="1600" height="3" fill="#ffcc4d" opacity=".22"/>
+</svg>

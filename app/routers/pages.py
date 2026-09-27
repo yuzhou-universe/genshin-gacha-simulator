@@ -22,9 +22,10 @@ async def index(user: CurrentUser):
 
 @router.get("/gacha")
 async def gacha_page(request: Request, user: RequiredUser):
-    return render(request, "gacha/index.html", {"user": user})
+    # 当前用户由 render() 从 request.state 自动注入模板，无需显式传参
+    return render(request, "gacha/index.html")
 
 
 @router.get("/history")
 async def history_page(request: Request, user: RequiredUser):
-    return render(request, "history/index.html", {"user": user})
+    return render(request, "history/index.html")

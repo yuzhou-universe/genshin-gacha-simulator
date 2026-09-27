@@ -1,0 +1,638 @@
+/* ==========================================================================
+   抽卡界面 —— 底部大图 + 固定操作 UI + 固定抽卡动画
+   动画对所有卡池完全一致，不随卡池切换而变化。
+   ========================================================================== */
+
+.gacha-body { overflow-x: hidden; }
+
+.gacha-stage {
+  position: relative;
+  min-height: calc(100vh - var(--topbar-h));
+  /* 给固定操作 UI 留出空间，避免遮挡底部大图与内容 */
+  padding: 0 0 calc(var(--dock-h) + 28px);
+}
+
+/* --------------------------------------------------------------------------
+   底部大图
+   -------------------------------------------------------------------------- */
+.gacha-art {
+  position: fixed;
+  inset: var(--topbar-h) 0 0 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gacha-art__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  opacity: 0.72;
+  transition: opacity 0.5s ease;
+}
+
+/* 让大图向下淡出，与操作 UI 自然衔接 */
+.gacha-art__fade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(13, 18, 32, 0.92) 0%, rgba(13, 18, 32, 0.25) 34%,
+                    rgba(13, 18, 32, 0.45) 68%, rgba(13, 18, 32, 0.96) 100%);
+}
+
+/* --------------------------------------------------------------------------
+   卡池信息
+   -------------------------------------------------------------------------- */
+.gacha-head {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px 0;
+  text-align: center;
+}
+
+.gacha-head__banner img {
+  max-width: min(560px, 82vw);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.gacha-head__title {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4.6vw, 40px);
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  text-shadow: 0 2px 22px rgba(255, 204, 77, 0.35), 0 1px 2px rgba(0, 0, 0, 0.7);
+  margin: 0 0 8px;
+}
+
+.gacha-head__desc {
+  color: var(--text-dim);
+  font-size: 14px;
+  max-width: 620px;
+  margin: 0 auto 22px;
+  line-height: 1.75;
+}
+
+/* UP 物品条 */
+.up-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  margin-bottom: 18px;
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+  background: rgba(13, 18, 32, 0.62);
+  backdrop-filter: blur(8px);
+}
+.up-strip__label {
+  font-family: var(--font-display);
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+}
+.up-strip__items { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+.up-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--star-color, var(--gold));
+  background: color-mix(in srgb, var(--star-color, var(--gold)) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--star-color, var(--gold)) 45%, transparent);
+}
+.up-chip__star { font-size: 11px; letter-spacing: -1px; }
+
+/* 概率说明 */
+.rates {
+  display: inline-block;
+  text-align: left;
+  margin-bottom: 18px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius);
+  background: rgba(13, 18, 32, 0.55);
+  max-width: 560px;
+}
+.rates__summary {
+  cursor: pointer;
+  padding: 9px 18px;
+  color: var(--text-dim);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  list-style: none;
+}
+.rates__summary::-webkit-details-marker { display: none; }
+.rates__summary::before { content: "▸ "; color: var(--gold); }
+.rates[open] .rates__summary::before { content: "▾ "; }
+.rates__body {
+  padding: 4px 18px 14px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.9;
+  border-top: 1px solid var(--gold-line);
+}
+.rates__body b { color: var(--gold-pale); font-weight: 600; }
+
+/* --------------------------------------------------------------------------
+   定轨面板
+   -------------------------------------------------------------------------- */
+.epitomized {
+  max-width: 560px;
+  margin: 0 auto 18px;
+  padding: 14px 18px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius);
+  background: rgba(13, 18, 32, 0.62);
+  text-align: left;
+}
+.epitomized__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.epitomized__title {
+  font-family: var(--font-display);
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+}
+.epitomized__points { font-size: 13px; color: var(--text-dim); }
+.epitomized__points b { color: var(--gold-pale); font-size: 15px; }
+.epitomized__choices { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.epi-choice {
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gold-line);
+  background: rgba(37, 49, 72, 0.7);
+  color: var(--text-dim);
+  font-size: 13px;
+  transition: all 0.16s;
+}
+.epi-choice:hover { color: var(--gold); border-color: var(--gold); }
+.epi-choice.is-active {
+  background: linear-gradient(160deg, #ffe9b8, var(--gold) 50%, var(--gold-deep));
+  color: #2b2110;
+  border-color: var(--gold-pale);
+  font-weight: 700;
+}
+.epitomized__hint {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  line-height: 1.7;
+}
+
+/* --------------------------------------------------------------------------
+   固定操作 UI
+   -------------------------------------------------------------------------- */
+.wish-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(13, 18, 32, 0.55), rgba(9, 13, 22, 0.97) 32%);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--gold-line);
+}
+
+.wish-dock__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "wallet pity actions"
+    "cost   cost cost";
+  gap: 10px 22px;
+  align-items: center;
+}
+
+.wallet {
+  grid-area: wallet;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.wallet__item { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.wallet__value { color: var(--gold-pale); font-variant-numeric: tabular-nums; }
+
+.wallet__icon {
+  width: 19px;
+  height: 19px;
+  display: inline-block;
+  border-radius: 50%;
+  flex: none;
+}
+.wallet__icon--gem {
+  background: radial-gradient(circle at 34% 30%, #d9f0ff, #5aa9e6 55%, #2c6ea8);
+  box-shadow: 0 0 8px rgba(90, 169, 230, 0.6);
+}
+.wallet__icon--intertwined {
+  background: radial-gradient(circle at 34% 30%, #ffe9b8, #ffcc4d 55%, #b8862c);
+  box-shadow: 0 0 8px rgba(255, 204, 77, 0.6);
+  border-radius: 50% 50% 50% 0;
+}
+.wallet__icon--acquaint {
+  background: radial-gradient(circle at 34% 30%, #ffe9f4, #d98cc0 55%, #8a4a74);
+  box-shadow: 0 0 8px rgba(217, 140, 192, 0.6);
+  border-radius: 50% 50% 50% 0;
+}
+
+.pity-bar { grid-area: pity; min-width: 0; }
+.pity-bar__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+.pity-bar__pool { color: var(--gold); font-family: var(--font-display); letter-spacing: 0.06em; }
+.pity-bar__count { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.pity-bar__track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.pity-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold), var(--gold-pale));
+  box-shadow: 0 0 10px rgba(255, 204, 77, 0.55);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pity-bar__note { margin-top: 4px; font-size: 11.5px; color: var(--text-faint); }
+
+.wish-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.wish-dock__cost {
+  grid-area: cost;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  min-height: 1em;
+}
+
+/* --------------------------------------------------------------------------
+   卡池切换抽屉
+   -------------------------------------------------------------------------- */
+.drawer { position: fixed; inset: 0; z-index: 90; }
+.drawer__mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 14, 0.68);
+  backdrop-filter: blur(3px);
+  animation: fade-in 0.2s ease-out;
+}
+.drawer__panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(420px, 88vw);
+  background: linear-gradient(160deg, var(--bg-panel), var(--bg-deep));
+  border-left: 1px solid var(--gold-line);
+  display: flex;
+  flex-direction: column;
+  animation: slide-in 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gold-line);
+  font-family: var(--font-display);
+  color: var(--gold);
+  letter-spacing: 0.1em;
+}
+.drawer__close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  line-height: 1;
+  padding: 0 6px;
+}
+.drawer__close:hover { color: var(--danger); }
+.drawer__list { overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.pool-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--gold-line);
+  background: rgba(37, 49, 72, 0.5);
+  text-align: left;
+  transition: all 0.16s;
+  width: 100%;
+}
+.pool-card:hover { border-color: var(--gold); background: rgba(46, 59, 85, 0.8); }
+.pool-card.is-active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 0 22px rgba(255, 204, 77, 0.22);
+}
+.pool-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex: none;
+  background: var(--bg-raised);
+}
+.pool-card__body { min-width: 0; flex: 1; }
+.pool-card__name {
+  color: var(--gold-pale);
+  font-size: 14px;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pool-card__meta { color: var(--text-faint); font-size: 11.5px; }
+.pool-card__flag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* --------------------------------------------------------------------------
+   抽卡演出 —— 所有卡池共用，不随卡池变化
+   -------------------------------------------------------------------------- */
+.wish {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, #101a2e 0%, #05070d 78%);
+  animation: fade-in 0.22s ease-out;
+}
+
+/* --- 阶段一：星光跃迁 --- */
+.wish__warp {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.warp { position: relative; width: 320px; height: 320px; display: grid; place-items: center; }
+
+.warp__core {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffbe8 0%, var(--gold) 45%, transparent 72%);
+  box-shadow: 0 0 60px 22px rgba(255, 204, 77, 0.65);
+  animation: warp-core 1.05s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.warp__ring {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 204, 77, 0.85);
+  animation: warp-ring 1.05s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.warp__ring--2 { animation-delay: 0.16s; border-color: rgba(160, 200, 255, 0.7); }
+
+.warp__ray {
+  position: absolute;
+  width: 2px;
+  height: 46vh;
+  background: linear-gradient(180deg, transparent, rgba(255, 236, 190, 0.9), transparent);
+  animation: warp-ray 1.05s ease-out forwards;
+}
+.warp__ray--2 { transform: rotate(60deg);  animation-delay: 0.08s; }
+.warp__ray--3 { transform: rotate(-60deg); animation-delay: 0.16s; }
+
+@keyframes warp-core {
+  0%   { transform: scale(0.2); opacity: 0; }
+  35%  { transform: scale(1.6); opacity: 1; }
+  70%  { transform: scale(2.6); opacity: 0.95; }
+  100% { transform: scale(9);   opacity: 0; }
+}
+@keyframes warp-ring {
+  0%   { transform: scale(0.3); opacity: 0; }
+  25%  { opacity: 0.9; }
+  100% { transform: scale(5.2); opacity: 0; }
+}
+@keyframes warp-ray {
+  0%   { transform: scaleY(0.1) rotate(var(--ray-rot, 0deg)); opacity: 0; }
+  40%  { opacity: 0.85; }
+  100% { transform: scaleY(1.5) rotate(var(--ray-rot, 0deg)); opacity: 0; }
+}
+
+/* --- 阶段二：结果网格 --- */
+.wish__grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: clamp(8px, 1.4vw, 14px);
+  padding: 20px;
+  max-width: 1080px;
+  width: 100%;
+}
+.wish__grid[data-count="1"]  { grid-template-columns: repeat(1, minmax(0, 190px)); justify-content: center; }
+.wish__grid[data-count="10"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+.wish-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--star-color, var(--gold));
+  background: linear-gradient(165deg, rgba(46, 59, 85, 0.9), rgba(15, 22, 34, 0.95));
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  transform: scale(0.86) translateY(14px);
+  animation: card-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 22px -6px var(--star-glow);
+}
+.wish-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wish-card__body {
+  position: relative;
+  width: 100%;
+  padding: 22px 8px 8px;
+  background: linear-gradient(180deg, transparent, rgba(6, 10, 18, 0.94) 42%);
+  text-align: center;
+}
+.wish-card__name {
+  display: block;
+  font-size: clamp(11px, 1.15vw, 13.5px);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wish-card__stars { display: block; font-size: 10px; color: var(--star-color); letter-spacing: -1px; margin-top: 2px; }
+.wish-card__up {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 9.5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 204, 77, 0.9);
+  color: #2b2110;
+  font-weight: 700;
+}
+.wish-card--five { border-width: 2px; box-shadow: 0 0 34px -4px var(--star-glow); }
+
+@keyframes card-in {
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- 阶段三：五星单独呈现 --- */
+.wish__five {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 50%, rgba(60, 42, 8, 0.86) 0%, rgba(5, 7, 13, 0.97) 70%);
+  animation: fade-in 0.3s ease-out;
+}
+.five-burst {
+  position: absolute;
+  width: 60vmin;
+  height: 60vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 236, 190, 0.75) 0%,
+                              rgba(255, 177, 63, 0.32) 38%, transparent 68%);
+  animation: five-burst 1.5s ease-out;
+}
+@keyframes five-burst {
+  0%   { transform: scale(0.2); opacity: 0; }
+  30%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0.34; }
+}
+
+.five-card {
+  position: relative;
+  margin: 0;
+  width: min(240px, 56vw);
+  animation: five-card-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+}
+.five-card__img {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--star-5);
+  box-shadow: 0 0 46px rgba(255, 177, 63, 0.7), 0 0 120px rgba(255, 177, 63, 0.3);
+}
+.five-card__caption { text-align: center; margin-top: 14px; }
+.five-card__name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(19px, 3.4vw, 26px);
+  color: var(--star-5);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 22px rgba(255, 177, 63, 0.65);
+}
+.five-card__tag { display: block; margin-top: 5px; font-size: 12px; color: var(--text-dim); letter-spacing: 0.1em; }
+
+@keyframes five-card-in {
+  from { opacity: 0; transform: scale(0.7) translateY(26px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- AI 点评 --- */
+.wish__ai {
+  position: absolute;
+  bottom: calc(var(--dock-h) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  max-width: min(620px, 88vw);
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--gold-line);
+  background: rgba(13, 18, 32, 0.9);
+  color: var(--gold-pale);
+  font-size: 13.5px;
+  text-align: center;
+  animation: fade-in 0.35s ease-out;
+}
+
+.wish__footer {
+  position: absolute;
+  bottom: 22px;
+  z-index: 5;
+}
+
+/* --------------------------------------------------------------------------
+   移动端适配
+   -------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .wish-dock__inner {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "wallet  wallet"
+      "pity    pity"
+      "actions actions"
+      "cost    cost";
+    gap: 8px;
+  }
+  .wallet { justify-content: space-between; }
+  .wish-actions { justify-content: center; flex-wrap: wrap; }
+  .wish-dock__cost { text-align: center; }
+
+  .gacha-head { padding-top: 22px; }
+  .gacha-head__desc { font-size: 13px; }
+  .up-strip { border-radius: var(--radius); padding: 10px 14px; }
+}
+
+@media (max-width: 620px) {
+  :root { --dock-h: 200px; }
+
+  .wish__grid[data-count="10"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .wish__grid { gap: 7px; padding: 12px; }
+  .wish-card__body { padding: 18px 5px 6px; }
+  .wallet__item { font-size: 12.5px; gap: 4px; }
+  .wallet__icon { width: 15px; height: 15px; }
+  .btn { padding: 9px 15px; font-size: 14px; }
+  .wish__ai { border-radius: var(--radius); font-size: 12.5px; }
+}
+
+/* 尊重系统的"减少动态效果"偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .warp__core, .warp__ring, .warp__ray, .five-burst { animation-duration: 0.01ms !important; }
+  .wish-card { animation-duration: 0.01ms !important; }
+  .five-card { animation-duration: 0.01ms !important; }
+}
