@@ -1,0 +1,55 @@
+[project]
+name = "genshin-gacha-simulator"
+version = "1.0.0"
+description = "原神风格抽卡模拟系统 —— FastAPI + SQLAlchemy 2.0 + DeepSeek Flash"
+requires-python = ">=3.11"
+
+# ---------------------------------------------------------------
+# Black
+# ---------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = '''
+/(
+    \.venv
+  | alembic/versions
+)/
+'''
+
+# ---------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E501",  # 行长由 black 负责
+    "B008",  # FastAPI 的 Depends() 默认参数写法
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+
+# ---------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "error::DeprecationWarning:app.*",
+]

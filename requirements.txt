@@ -1,0 +1,29 @@
+# ---- Web 框架 ----
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# ---- 数据库 ----
+SQLAlchemy[asyncio]>=2.0.30
+alembic>=1.13
+aiosqlite>=0.20          # 开发：SQLite
+asyncpg>=0.29            # 生产：PostgreSQL
+
+# ---- 配置与校验 ----
+pydantic>=2.7
+pydantic-settings>=2.3
+python-dotenv>=1.0
+
+# ---- 认证 ----
+argon2-cffi>=23.1         # 密码哈希（不用 passlib：已停止维护，3.13+ 会崩）
+itsdangerous>=2.2         # Session 签名 Cookie
+
+# ---- 模板与 AI ----
+Jinja2>=3.1
+python-multipart>=0.0.9   # 表单/文件上传
+httpx>=0.27               # DeepSeek Flash 异步调用
+
+# ---- 测试与代码质量 ----
+pytest>=8.2
+pytest-asyncio>=0.23
+ruff>=0.5
+black>=24.4

@@ -1,0 +1,10 @@
+# 统一换行符，避免 Windows 上 git 反复提示 "LF will be replaced by CRLF"
+* text=auto eol=lf
+
+# 二进制素材不做换行符转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.db binary
