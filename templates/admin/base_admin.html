@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block body_class %}admin-body{% endblock %}
+{% block main_class %}admin-shell{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/admin.css">
+{% endblock %}
+
+{% block content %}
+<aside class="admin-nav">
+  <div class="admin-nav__group">
+    <span class="admin-nav__label">概览</span>
+    <a class="admin-nav__link" href="/admin" data-nav="/admin">仪表盘</a>
+    <a class="admin-nav__link" href="/admin/logs" data-nav="/admin/logs">操作日志</a>
+  </div>
+  <div class="admin-nav__group">
+    <span class="admin-nav__label">卡池</span>
+    <a class="admin-nav__link" href="/admin/pools" data-nav="/admin/pools">卡池列表</a>
+    <a class="admin-nav__link" href="/admin/assets" data-nav="/admin/assets">素材管理</a>
+  </div>
+  <div class="admin-nav__group">
+    <span class="admin-nav__label">系统</span>
+    <a class="admin-nav__link" href="/admin/settings" data-nav="/admin/settings">全局配置</a>
+    <a class="admin-nav__link" href="/gacha">前往用户端 ↗</a>
+  </div>
+</aside>
+
+<div class="admin-main">
+  <header class="admin-head">
+    <h1 class="admin-head__title">{% block admin_title %}后台管理{% endblock %}</h1>
+    <div class="admin-head__actions">{% block admin_actions %}{% endblock %}</div>
+  </header>
+  {% block admin_content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/admin.js"></script>
+{% endblock %}

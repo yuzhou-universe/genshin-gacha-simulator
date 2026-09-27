@@ -276,7 +276,10 @@ def build_default_pools() -> list[dict[str, Any]]:
             "cost_per_pull": 1,
             "cost_per_ten": 8,  # 八折
             "lifetime_pull_cap": 20,
+            # 两个开关都显式写出：只写一个的话另一个会落到数据库列默认值，
+            # 而"单抽与十连同时禁用"是非法的 —— 不该依赖隐式默认值
             "allows_single_pull": False,  # 与线上一致：只能十连
+            "allows_ten_pull": True,
             "rules": {
                 "base_rate_5": 0.006,
                 "base_rate_4": 0.051,

@@ -1,0 +1,39 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}仪表盘 · 后台{% endblock %}
+{% block admin_title %}仪表盘{% endblock %}
+
+{% block admin_actions %}
+<button type="button" class="btn btn--ghost btn--sm" data-refresh>刷新</button>
+{% endblock %}
+
+{% block admin_content %}
+<section class="stat-grid" data-stats>
+  <div class="stat-card"><span class="stat-card__label">注册用户</span><b class="stat-card__value" data-s="total_users">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">活跃用户</span><b class="stat-card__value" data-s="active_users">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">管理员</span><b class="stat-card__value" data-s="admin_count">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">总抽数</span><b class="stat-card__value" data-s="total_pulls">—</b></div>
+  <div class="stat-card stat-card--five"><span class="stat-card__label">五星总数</span><b class="stat-card__value" data-s="total_five_stars">—</b></div>
+  <div class="stat-card stat-card--four"><span class="stat-card__label">四星总数</span><b class="stat-card__value" data-s="total_four_stars">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">全局出金率</span><b class="stat-card__value" data-s="five_star_rate">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">今日抽数</span><b class="stat-card__value" data-s="pulls_today">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">近 7 日抽数</span><b class="stat-card__value" data-s="pulls_last_7_days">—</b></div>
+</section>
+
+<div class="admin-cols">
+  <section class="panel">
+    <h2 class="panel__title">各卡池抽卡量</h2>
+    <table class="admin-table">
+      <thead><tr><th>卡池</th><th class="ta-r">抽数</th><th class="ta-r">五星</th></tr></thead>
+      <tbody data-breakdown></tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel__title">出金最多的物品</h2>
+    <table class="admin-table">
+      <thead><tr><th>物品</th><th class="ta-r">次数</th></tr></thead>
+      <tbody data-top></tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

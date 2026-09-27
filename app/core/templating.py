@@ -28,12 +28,29 @@ templates.env.globals.update(
 )
 
 
-def render(request: Request, template: str, context: dict | None = None):
+def render(
+    request: Request,
+    template: str,
+    context: dict | None = None,
+    *,
+    status_code: int = 200,
+):
     """统一的模板渲染入口。
 
     自动注入 ``request`` 与当前用户，避免每个路由重复传参。
+
+    **用 UserView 快照而不是 ORM 实例**：异常处理器渲染错误页时，请求的数据库
+    会话已经关闭，ORM 实例处于 detached + expired 状态，读任何属性都会抛
+    ``DetachedInstanceError``。快照是纯数据，不受会话生命周期影响。
+
+    ``status_code`` 必须由调用方显式传入：TemplateResponse 默认是 200，
+    渲染错误页时若忘了传，就会出现"返回 403 页面但 HTTP 状态是 200"，
+    前端与监控都会被骗过去。
     """
-    ctx = {"request": request, "current_user": getattr(request.state, "user", None)}
+    ctx = {
+        "request": request,
+        "current_user": getattr(request.state, "user_view", None),
+    }
     if context:
         ctx.update(context)
-    return templates.TemplateResponse(request, template, ctx)
+    return templates.TemplateResponse(request, template, ctx, status_code=status_code)

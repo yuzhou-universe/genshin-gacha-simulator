@@ -180,6 +180,41 @@ async def user(seeded_db):
 
 
 @pytest.fixture
+async def client(db_engine):
+    """接到测试库的 HTTP 客户端。
+
+    用 ``httpx.AsyncClient`` + ``ASGITransport`` 而不是 ``TestClient``：
+    TestClient 会另起一个事件循环，而 ``db_engine`` 是在 pytest-asyncio 的
+    循环里建的，aiosqlite 的连接跨循环复用会出问题。同一个循环最省心。
+
+    同时不触发 lifespan —— 建表与种子数据分别由 db_engine / seeded_db 完成，
+    否则每个测试都会跑一遍 Alembic 迁移。
+    """
+    from httpx import ASGITransport, AsyncClient
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.db.session import get_db
+    from app.main import create_app
+
+    factory = async_sessionmaker(bind=db_engine, expire_on_commit=False, autoflush=False)
+
+    async def override_get_db():
+        async with factory() as session:
+            try:
+                yield session
+            except Exception:
+                await session.rollback()
+                raise
+
+    app = create_app()
+    app.dependency_overrides[get_db] = override_get_db
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+
+
+@pytest.fixture
 async def pool_id(seeded_db):
     """默认角色活动祈愿的 id。"""
     from sqlalchemy import select

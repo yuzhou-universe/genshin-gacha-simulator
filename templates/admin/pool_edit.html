@@ -1,0 +1,190 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ pool.name }} · 卡池编辑{% endblock %}
+{% block admin_title %}编辑卡池：{{ pool.name }}{% endblock %}
+
+{% block admin_actions %}
+<a class="btn btn--ghost btn--sm" href="/admin/pools">返回列表</a>
+<button type="button" class="btn btn--primary btn--sm" data-save-pool>保存</button>
+{% endblock %}
+
+{% block admin_content %}
+{#- 规则字段集中定义在此，表单与说明由它生成，避免几十个字段手写重复 -#}
+{% set rule_fields = [
+  ('base_rate_5', '五星基础概率', 'number', '0.001', '0.6% 就填 0.006'),
+  ('base_rate_4', '四星基础概率', 'number', '0.001', '角色池 0.051，武器池 0.060'),
+  ('hard_pity_5', '五星硬保底（抽）', 'number', '1', '最多多少抽必出五星'),
+  ('hard_pity_4', '四星硬保底（抽）', 'number', '1', '最多多少抽必出四星或以上'),
+  ('soft_pity_start', '软保底起始抽', 'number', '1', '从第几抽开始提升概率'),
+  ('soft_pity_step', '软保底每抽增量', 'number', '0.001', '每抽提升多少，如 0.06'),
+  ('up_rate_5', '五星 UP 概率', 'number', '0.01', '角色池 0.5，武器池 0.75'),
+  ('up_rate_4', '四星 UP 概率', 'number', '0.01', '角色池 0.5，武器池 0.75'),
+  ('epitomized_max_points', '定轨命定值上限', 'number', '1', '满值必出定轨武器。线上为 1'),
+] %}
+
+<form class="admin-form" data-pool-form data-pool-id="{{ pool.id }}">
+
+  <!-- ============ 基本信息 ============ -->
+  <section class="panel">
+    <h2 class="panel__title">基本信息</h2>
+    <div class="form-grid">
+      <label class="field">
+        <span class="field__label">标识（不可修改）</span>
+        <input class="field__input" value="{{ pool.key }}" disabled>
+      </label>
+      <label class="field">
+        <span class="field__label">类型（不可修改）</span>
+        <input class="field__input" value="{{ pool_type_labels.get(pool.pool_type, pool.pool_type) }}" disabled>
+      </label>
+      <label class="field">
+        <span class="field__label">名称</span>
+        <input class="field__input" name="name" value="{{ pool.name }}" maxlength="128" required>
+      </label>
+      <label class="field">
+        <span class="field__label">排序（越小越靠前）</span>
+        <input class="field__input" type="number" name="sort_order" value="{{ pool.sort_order }}">
+      </label>
+    </div>
+
+    <label class="field">
+      <span class="field__label">描述</span>
+      <textarea class="field__textarea" name="description" maxlength="2000">{{ pool.description }}</textarea>
+    </label>
+
+    <div class="switch-row">
+      <label class="switch"><input type="checkbox" name="is_active" {% if pool.is_active %}checked{% endif %}><span>启用</span></label>
+      <label class="switch"><input type="checkbox" name="is_current" {% if pool.is_current %}checked{% endif %}><span>当前开放</span></label>
+      <label class="switch"><input type="checkbox" name="is_main" {% if pool.is_main %}checked{% endif %}><span>主推</span></label>
+    </div>
+
+    <div class="form-grid">
+      <label class="field">
+        <span class="field__label">开放时间（留空表示立即）</span>
+        <input class="field__input" type="datetime-local" name="open_at"
+               value="{{ pool.open_at.strftime('%Y-%m-%dT%H:%M') if pool.open_at else '' }}">
+      </label>
+      <label class="field">
+        <span class="field__label">结束时间（留空表示不限）</span>
+        <input class="field__input" type="datetime-local" name="close_at"
+               value="{{ pool.close_at.strftime('%Y-%m-%dT%H:%M') if pool.close_at else '' }}">
+        <span class="field__hint">卡池结束后，玩家的定轨命定值会被清零（惰性判定，不依赖定时任务）</span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ============ 素材 ============ -->
+  <section class="panel">
+    <h2 class="panel__title">素材</h2>
+    <p class="admin-hint">
+      先到<a href="/admin/assets">素材管理</a>上传图片，再把 URL 填到这里。
+      留空则使用内置的默认背景与五星占位图。
+    </p>
+    <label class="field">
+      <span class="field__label">底部大图 URL</span>
+      <input class="field__input" name="background_image_url" value="{{ pool.background_image_url }}"
+             placeholder="/static/uploads/background/xxxx.png">
+      <span class="field__hint">用户在抽卡界面看到的整屏底部大图</span>
+    </label>
+    <div class="form-grid">
+      <label class="field">
+        <span class="field__label">横幅 URL</span>
+        <input class="field__input" name="banner_url" value="{{ pool.banner_url }}">
+      </label>
+      <label class="field">
+        <span class="field__label">图标 URL</span>
+        <input class="field__input" name="icon_url" value="{{ pool.icon_url }}">
+      </label>
+    </div>
+    <label class="field">
+      <span class="field__label">动画标识（预留）</span>
+      <input class="field__input" name="animation_key" value="{{ pool.animation_key }}">
+      <span class="field__hint">抽卡动画对所有卡池固定为同一套，此字段仅作存储与预留</span>
+    </label>
+  </section>
+
+  <!-- ============ 消耗 ============ -->
+  <section class="panel">
+    <h2 class="panel__title">消耗</h2>
+    <div class="form-grid">
+      <label class="field">
+        <span class="field__label">消耗货币</span>
+        <select class="field__select" name="cost_currency">
+          {% for value, label in currency_labels.items() %}
+          <option value="{{ value }}" {% if pool.cost_currency == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field">
+        <span class="field__label">单抽消耗</span>
+        <input class="field__input" type="number" name="cost_per_pull" value="{{ pool.cost_per_pull }}" min="0">
+      </label>
+      <label class="field">
+        <span class="field__label">十连消耗</span>
+        <input class="field__input" type="number" name="cost_per_ten"
+               value="{{ pool.cost_per_ten if pool.cost_per_ten is not none else '' }}" min="0">
+        <span class="field__hint">留空表示按单抽累加。新手池填 8 即为八折</span>
+      </label>
+      <label class="field">
+        <span class="field__label">终身抽取上限</span>
+        <input class="field__input" type="number" name="lifetime_pull_cap"
+               value="{{ pool.lifetime_pull_cap if pool.lifetime_pull_cap is not none else '' }}" min="1">
+        <span class="field__hint">留空表示不限。新手池为 20</span>
+      </label>
+    </div>
+    <div class="switch-row">
+      <label class="switch"><input type="checkbox" name="allows_single_pull" {% if pool.allows_single_pull %}checked{% endif %}><span>允许单抽</span></label>
+      <label class="switch"><input type="checkbox" name="allows_ten_pull" {% if pool.allows_ten_pull %}checked{% endif %}><span>允许十连</span></label>
+    </div>
+  </section>
+
+  <!-- ============ 概率与规则 ============ -->
+  <section class="panel">
+    <h2 class="panel__title">概率与保底规则</h2>
+    <div class="form-grid">
+      {% for name, label, type, step, hint in rule_fields %}
+      <label class="field">
+        <span class="field__label">{{ label }}</span>
+        <input class="field__input" type="{{ type }}" step="{{ step }}"
+               name="{{ name }}" value="{{ pool[name] }}">
+        <span class="field__hint">{{ hint }}</span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="switch-row">
+      <label class="switch"><input type="checkbox" name="soft_pity_enabled" {% if pool.soft_pity_enabled %}checked{% endif %}><span>启用软保底</span></label>
+      <label class="switch"><input type="checkbox" name="has_5050" {% if pool.has_5050 %}checked{% endif %}><span>启用 UP / 大保底</span></label>
+      <label class="switch"><input type="checkbox" name="epitomized_enabled" {% if pool.epitomized_enabled %}checked{% endif %}><span>启用定轨</span></label>
+      <label class="switch"><input type="checkbox" name="capturing_radiance_enabled" {% if pool.capturing_radiance_enabled %}checked{% endif %}><span>捕获明光</span></label>
+    </div>
+
+    <div class="admin-hint admin-hint--warn" data-pity-warning hidden></div>
+  </section>
+
+  <!-- ============ 物品 ============ -->
+  <section class="panel">
+    <h2 class="panel__title">卡池物品</h2>
+    <p class="admin-hint">
+      五星物品的「展示图」就是玩家抽到五星时最后呈现的那张图；
+      留空则使用内置的原神风格占位图。歪池必须与卡池类型一致
+      （角色池的歪池只能是角色，武器池只能是武器），保存时会校验。
+    </p>
+
+    <div class="item-editor" data-item-editor>
+      <div class="item-editor__head">
+        <span>名称</span><span>类型</span><span>星级</span><span>UP</span>
+        <span>权重</span><span>展示图 URL</span><span>启用</span><span></span>
+      </div>
+      <div data-item-rows></div>
+      <button type="button" class="btn btn--ghost btn--sm" data-add-item>+ 添加物品</button>
+    </div>
+
+    <div class="item-summary" data-item-summary></div>
+  </section>
+
+  <p class="form-error" data-form-error hidden></p>
+  <div class="form-actions">
+    <button type="button" class="btn btn--primary" data-save-pool>保存全部修改</button>
+    <button type="button" class="btn btn--danger" data-delete-pool>删除卡池</button>
+  </div>
+</form>
+{% endblock %}

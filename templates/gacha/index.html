@@ -53,15 +53,15 @@
     <div class="wallet">
       <div class="wallet__item" title="原石">
         <span class="wallet__icon wallet__icon--gem"></span>
-        <span class="wallet__value" data-cur-primogems>{{ current_user.currency.primogems if current_user.currency else 0 }}</span>
+        <span class="wallet__value" data-cur-primogems>{{ current_user.primogems }}</span>
       </div>
       <div class="wallet__item" title="纠缠之缘">
         <span class="wallet__icon wallet__icon--intertwined"></span>
-        <span class="wallet__value" data-cur-intertwined>{{ current_user.currency.intertwined_fate if current_user.currency else 0 }}</span>
+        <span class="wallet__value" data-cur-intertwined>{{ current_user.intertwined_fate }}</span>
       </div>
       <div class="wallet__item" title="相遇之缘">
         <span class="wallet__icon wallet__icon--acquaint"></span>
-        <span class="wallet__value" data-cur-acquaint>{{ current_user.currency.acquaint_fate if current_user.currency else 0 }}</span>
+        <span class="wallet__value" data-cur-acquaint>{{ current_user.acquaint_fate }}</span>
       </div>
     </div>
 

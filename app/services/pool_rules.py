@@ -159,11 +159,24 @@ class PoolRules:
         return {f.name: getattr(self, f.name) for f in fields(self)}
 
 
-def validate_pool(pool: Any) -> None:
+def validate_pool(
+    pool: Any,
+    *,
+    items: list[Any] | None = None,
+    require_items: bool = True,
+) -> None:
     """规则 + 物品的完整性校验，供管理员保存卡池时调用。
 
     除了 :meth:`PoolRules.validate` 的规则自洽性，还要确认抽卡时需要的每个
     物品集合都非空、类型正确、权重可计算 —— 否则引擎会在运行时才抛错。
+
+    ``items`` 用于传入**调用方自己刚构造的物品列表**。新建卡池时必须这么做：
+    此时对象还没进库，读 ``pool.items`` 会触发惰性加载，而异步 SQLAlchemy
+    不允许在同步上下文里做 IO，会抛 ``MissingGreenlet``（表现为 500）。
+
+    ``require_items=False`` 用于新建卡池：管理员通常是先建池、再配物品。
+    此时跳过物品校验，但调用方必须保证新池是停用状态，
+    否则会出现"玩家能抽、一抽就报错"的卡池。
     """
     PoolRules.from_pool(pool).validate()
 
@@ -176,20 +189,26 @@ def validate_pool(pool: Any) -> None:
     if not pool.allows_single_pull and not pool.allows_ten_pull:
         raise PoolConfigError("单抽与十连不能同时禁用")
 
-    # 十连折扣价必须低于按单抽累加的价格，否则是标价错误
+    # 只拒绝"十连比单抽累加还贵"这种真正的标价错误。
+    # 用严格大于：线上角色/武器/常驻池的十连就是 10 个纠缠之缘（等于累加价，
+    # 不打折），新手池才是 8 个。把"相等"也判为错误会让默认卡池存不进去。
     if (
         pool.cost_per_ten is not None
-        and pool.cost_per_ten >= pool.cost_per_pull * 10
         and pool.allows_single_pull
+        and pool.cost_per_ten > pool.cost_per_pull * 10
     ):
         raise PoolConfigError(
             f"十连价格（{pool.cost_per_ten}）不应高于单抽累加价"
             f"（{pool.cost_per_pull} × 10 = {pool.cost_per_pull * 10}）"
         )
 
-    items = [i for i in pool.items if i.is_active]
-    if not items:
-        raise PoolConfigError("卡池至少要有一个启用中的物品")
+    source = items if items is not None else pool.items
+    active_items = [i for i in source if i.is_active]
+    if not active_items:
+        if require_items:
+            raise PoolConfigError("卡池至少要有一个启用中的物品")
+        return
+    items = active_items
 
     _check_group(pool, items, star=5, label="五星")
     _check_group(pool, items, star=4, label="四星")

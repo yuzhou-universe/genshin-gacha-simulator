@@ -131,16 +131,16 @@ async def test_stats_on_constructed_data(seeded_db, user, pool_id):
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
     rows = [
         # 第 5 抽出一金（UP）
-        dict(star=3, is_up=False, pity_5_before=0),
-        dict(star=3, is_up=False, pity_5_before=1),
-        dict(star=4, is_up=True, pity_5_before=2),
-        dict(star=3, is_up=False, pity_5_before=3),
-        dict(star=5, is_up=True, pity_5_before=4),
+        {"star": 3, "is_up": False, "pity_5_before": 0},
+        {"star": 3, "is_up": False, "pity_5_before": 1},
+        {"star": 4, "is_up": True, "pity_5_before": 2},
+        {"star": 3, "is_up": False, "pity_5_before": 3},
+        {"star": 5, "is_up": True, "pity_5_before": 4},
         # 第 3 抽出一金（歪）
-        dict(star=3, is_up=False, pity_5_before=0),
-        dict(star=4, is_up=False, pity_5_before=1),
-        dict(star=5, is_up=False, pity_5_before=2),
-        dict(star=3, is_up=False, pity_5_before=0),
+        {"star": 3, "is_up": False, "pity_5_before": 0},
+        {"star": 4, "is_up": False, "pity_5_before": 1},
+        {"star": 5, "is_up": False, "pity_5_before": 2},
+        {"star": 3, "is_up": False, "pity_5_before": 0},
     ]
     for n, spec in enumerate(rows):
         seeded_db.add(

@@ -1,0 +1,101 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}全局配置 · 后台{% endblock %}
+{% block admin_title %}全局配置{% endblock %}
+
+{% block admin_actions %}
+<button type="button" class="btn btn--primary btn--sm" data-save-settings>保存配置</button>
+{% endblock %}
+
+{% block admin_content %}
+<!-- ============ AI 状态 ============ -->
+<section class="panel">
+  <h2 class="panel__title">DeepSeek 状态</h2>
+  <div class="kv-list">
+    <div class="kv"><span>已配置密钥</span><b class="{{ 'ok' if ai.enabled else 'off' }}">{{ '是' if ai.enabled else '否（全部走本地模板）' }}</b></div>
+    <div class="kv"><span>当前可用</span><b class="{{ 'ok' if ai.available else 'off' }}">{{ '是' if ai.available else '否' }}</b></div>
+    <div class="kv"><span>模型</span><b>{{ ai.model }}</b></div>
+    <div class="kv"><span>接入点</span><b>{{ ai.base_url }}</b></div>
+    {% if ai.last_error %}
+    <div class="kv"><span>最近错误</span><b class="off">{{ ai.last_error }}</b></div>
+    {% endif %}
+  </div>
+  <p class="admin-hint">
+    密钥通过 <code>DEEPSEEK_API_KEY</code> 环境变量配置，不在此处填写也不会入库。
+    AI 不可用时抽卡点评会自动降级为本地模板，不影响抽卡本身。
+  </p>
+</section>
+
+<!-- ============ 初始货币 ============ -->
+<section class="panel">
+  <h2 class="panel__title">新用户初始货币</h2>
+  <div class="form-grid form-grid--3">
+    <label class="field">
+      <span class="field__label">原石</span>
+      <input class="field__input" type="number" name="initial_primogems" value="{{ initial.primogems }}" min="0">
+    </label>
+    <label class="field">
+      <span class="field__label">纠缠之缘</span>
+      <input class="field__input" type="number" name="initial_intertwined_fate" value="{{ initial.intertwined_fate }}" min="0">
+    </label>
+    <label class="field">
+      <span class="field__label">相遇之缘</span>
+      <input class="field__input" type="number" name="initial_acquaint_fate" value="{{ initial.acquaint_fate }}" min="0">
+    </label>
+  </div>
+  <p class="admin-hint">只影响此后注册的新用户，不改动已有用户的余额。</p>
+</section>
+
+<!-- ============ 抽卡动画 ============ -->
+<section class="panel">
+  <h2 class="panel__title">抽卡动画</h2>
+  <p class="admin-hint">
+    所有卡池共用同一套抽卡演出，<b>不随卡池切换而变化</b>。这里只调整时长与是否可跳过。
+  </p>
+  <div class="form-grid form-grid--3">
+    <label class="field">
+      <span class="field__label">启用动画</span>
+      <label class="switch"><input type="checkbox" name="anim_enabled" {% if animation.enabled %}checked{% endif %}><span>抽卡时播放演出</span></label>
+    </label>
+    <label class="field">
+      <span class="field__label">逐个翻出间隔（毫秒）</span>
+      <input class="field__input" type="number" name="reveal_delay_ms" value="{{ animation.reveal_delay_ms }}" min="0" max="2000">
+    </label>
+    <label class="field">
+      <span class="field__label">五星呈现时长（毫秒）</span>
+      <input class="field__input" type="number" name="five_star_intro_ms" value="{{ animation.five_star_intro_ms }}" min="0" max="8000">
+    </label>
+  </div>
+  <label class="switch"><input type="checkbox" name="anim_skippable" {% if animation.skippable %}checked{% endif %}><span>允许跳过</span></label>
+</section>
+
+<!-- ============ 提示词模板 ============ -->
+<section class="panel">
+  <h2 class="panel__title">AI 提示词模板</h2>
+  <p class="admin-hint">
+    留空则使用系统默认模板（下方灰字即为默认值）。
+    可用占位符必须写在花括号里；写错字段名不会报错，只会渲染成空串。
+    提示词中<b>不会</b>包含任何用户身份信息。
+  </p>
+
+  {% set template_meta = [
+    ('pull_comment', '抽卡点评', 'pool_name, count, items, until_hard_pity, guarantee_note, tone_note'),
+    ('pool_intro', '卡池介绍', 'pool_name, pool_type, base_rate_5, pity_desc, up_items'),
+    ('history_summary', '历史总结', 'total_pulls, five_star_count, four_star_count, average_pulls, max_pulls, five_star_rate'),
+    ('character_line', '角色台词', 'item_name'),
+  ] %}
+
+  {% for key, label, placeholders in template_meta %}
+  <label class="field">
+    <span class="field__label">{{ label }}</span>
+    <textarea class="field__textarea" rows="6" name="tpl_{{ key }}"
+              placeholder="{{ default_templates[key] }}">{{ templates.get(key, '') }}</textarea>
+    <span class="field__hint">可用占位符：{{ placeholders }}</span>
+  </label>
+  {% endfor %}
+</section>
+
+<p class="form-error" data-form-error hidden></p>
+<div class="form-actions">
+  <button type="button" class="btn btn--primary" data-save-settings>保存配置</button>
+</div>
+{% endblock %}

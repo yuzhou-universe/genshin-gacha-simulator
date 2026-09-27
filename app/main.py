@@ -23,6 +23,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from alembic import command
 from app.core.config import BASE_DIR, settings
 from app.core.exceptions import AppError, AuthRequired
+from app.core.request_utils import wants_json
 from app.core.templating import render
 from app.db.session import SessionLocal
 from app.routers import admin, api_ai, api_history, api_pools, api_pull, auth, pages
@@ -62,27 +63,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-def wants_json(request: Request) -> bool:
-    """判断请求期望 JSON 还是 HTML。
-
-    只按路径前缀判断是不够的：``/auth/login``、``/auth/register`` 这类接口
-    前端是用 fetch 以 JSON 调用的，若返回 HTML 错误页，前端只能抛出
-    "服务器返回了非预期的响应"，用户就看不到"该用户名已被注册"这类真实原因。
-    因此还要看请求自身的 Content-Type 与 XHR 标记。
-    """
-    path = request.url.path
-    if path.startswith("/api/") or path.startswith("/admin/api/"):
-        return True
-    # 我们自己前端发的 fetch 请求
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        return True
-    # 请求体是 JSON 的，响应也应当是 JSON
-    if request.headers.get("content-type", "").startswith("application/json"):
-        return True
-    accept = request.headers.get("accept", "")
-    return "application/json" in accept and "text/html" not in accept
-
-
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, lifespan=lifespan, debug=settings.debug)
 
@@ -111,6 +91,9 @@ def create_app() -> FastAPI:
             request,
             "error.html",
             {"status_code": exc.status_code, "message": exc.message},
+            # 必须传：否则错误页会以 200 返回，
+            # "普通用户访问后台"看起来就是成功了
+            status_code=exc.status_code,
         )
 
     # ---------------- 路由 ----------------

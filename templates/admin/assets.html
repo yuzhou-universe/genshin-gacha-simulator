@@ -1,0 +1,48 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}素材管理 · 后台{% endblock %}
+{% block admin_title %}素材管理{% endblock %}
+
+{% block admin_content %}
+<section class="panel">
+  <h2 class="panel__title">上传素材</h2>
+  <p class="admin-hint">
+    仅允许 jpg / png / webp，且会校验文件头确认真实格式（改扩展名绕不过去）。
+    文件一律重命名为随机名后落盘，原始文件名不参与路径拼接。
+  </p>
+
+  <form class="upload-form" data-upload-form>
+    <label class="field">
+      <span class="field__label">用途</span>
+      <select class="field__select" name="category">
+        <option value="background">卡池底部大图</option>
+        <option value="banner">卡池横幅</option>
+        <option value="icon">卡池 / UP 图标</option>
+        <option value="item">五星物品展示图</option>
+        <option value="misc">其它</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field__label">选择图片</span>
+      <input class="field__input" type="file" name="file"
+             accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+    </label>
+
+    <button type="submit" class="btn btn--primary">上传</button>
+  </form>
+
+  <div class="upload-result" data-upload-result hidden>
+    <p class="field__hint">上传成功，复制下面的 URL 填到卡池或物品上：</p>
+    <div class="url-copy">
+      <input class="field__input" readonly data-upload-url>
+      <button type="button" class="btn btn--ghost btn--sm" data-copy-url>复制</button>
+    </div>
+    <img class="upload-preview" data-upload-preview alt="上传预览">
+  </div>
+</section>
+
+<section class="panel">
+  <h2 class="panel__title">已上传素材</h2>
+  <div class="asset-grid" data-asset-grid></div>
+</section>
+{% endblock %}

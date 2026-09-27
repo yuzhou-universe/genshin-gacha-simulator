@@ -1,0 +1,41 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}操作日志 · 后台{% endblock %}
+{% block admin_title %}操作日志{% endblock %}
+
+{% block admin_actions %}
+<label class="field field--inline">
+  <select class="field__select" data-log-action>
+    <option value="">全部操作</option>
+    {% for a in actions %}
+    <option value="{{ a }}">{{ a }}</option>
+    {% endfor %}
+  </select>
+</label>
+<button type="button" class="btn btn--ghost btn--sm" data-reload-logs>刷新</button>
+{% endblock %}
+
+{% block admin_content %}
+<section class="panel">
+  <p class="admin-hint">
+    记录管理员对卡池、素材、全局配置的每一次修改，包含操作人、时间、内容与来源 IP。
+    用户名列存的是快照，即使账号被删日志依然可读。
+  </p>
+
+  <table class="admin-table admin-table--logs">
+    <thead>
+      <tr>
+        <th>时间</th><th>操作人</th><th>操作</th><th>对象</th><th>变更内容</th><th>IP</th>
+      </tr>
+    </thead>
+    <tbody data-log-rows></tbody>
+  </table>
+
+  <p class="empty" data-log-empty hidden>暂无日志</p>
+
+  <div class="pager" data-log-pager hidden>
+    <button type="button" class="btn btn--ghost btn--sm" data-log-page="prev">上一页</button>
+    <span class="pager__info" data-log-page-info></span>
+    <button type="button" class="btn btn--ghost btn--sm" data-log-page="next">下一页</button>
+  </div>
+</section>
+{% endblock %}

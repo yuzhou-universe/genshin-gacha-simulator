@@ -1,0 +1,54 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}卡池管理 · 后台{% endblock %}
+{% block admin_title %}卡池管理{% endblock %}
+
+{% block admin_actions %}
+<button type="button" class="btn btn--primary btn--sm" data-new-pool>新建卡池</button>
+{% endblock %}
+
+{% block admin_content %}
+<section class="panel">
+  <p class="admin-hint">
+    「启用」控制卡池是否可用；「开放」控制是否对玩家可见，可同时开放多个；
+    「主推」全局只能有一个。规则改动立即生效，玩家下一抽即按新规则结算。
+  </p>
+  <div class="pool-table" data-pool-table></div>
+</section>
+
+<!-- 新建卡池 -->
+<div class="modal" data-new-pool-modal hidden>
+  <div class="modal__mask" data-close-modal></div>
+  <div class="modal__panel">
+    <h2 class="modal__title">新建卡池</h2>
+    <form class="admin-form" data-new-pool-form>
+      <label class="field">
+        <span class="field__label">标识（key，创建后不可改）</span>
+        <input class="field__input" name="key" required pattern="[a-z0-9][a-z0-9\-_]{1,62}"
+               placeholder="例如 character-event-3">
+        <span class="field__hint">小写字母、数字、连字符或下划线，2-63 位</span>
+      </label>
+      <label class="field">
+        <span class="field__label">名称</span>
+        <input class="field__input" name="name" required maxlength="128" placeholder="角色活动祈愿·其三">
+      </label>
+      <label class="field">
+        <span class="field__label">类型</span>
+        <select class="field__select" name="pool_type" data-pool-type>
+          <option value="character">角色活动祈愿</option>
+          <option value="weapon">武器活动祈愿</option>
+          <option value="standard">常驻祈愿</option>
+          <option value="beginner">新手祈愿</option>
+        </select>
+        <span class="field__hint">
+          保底组默认跟随类型。新手池会自动使用独立保底组，避免八折抽卡推进常驻池保底。
+        </span>
+      </label>
+      <p class="form-error" data-error hidden></p>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-close-modal>取消</button>
+        <button type="submit" class="btn btn--primary">创建</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
