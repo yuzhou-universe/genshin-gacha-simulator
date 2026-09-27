@@ -1,0 +1,74 @@
+# =============================================================================
+# 一键启动：docker compose up --build
+#
+# 默认起 PostgreSQL + 应用。想用 SQLite（零依赖）的话：
+#   docker compose up --build app-sqlite
+# 或者干脆不用 Docker，直接 uvicorn 跑（见 README）。
+#
+# 启动前请先：cp .env.example .env 并修改 SECRET_KEY 与 ADMIN_PASSWORD
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gacha}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gacha}
+      POSTGRES_DB: ${POSTGRES_DB:-gacha}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # 应用要等数据库真正可接受连接再启动，否则首次迁移会失败
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gacha} -d ${POSTGRES_DB:-gacha}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    # 生产环境不建议把数据库端口暴露到宿主机；本地想连的话再打开
+    # ports:
+    #   - "5432:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-gacha}:${POSTGRES_PASSWORD:-gacha}@db:5432/${POSTGRES_DB:-gacha}
+      DEBUG: ${DEBUG:-false}
+      SECRET_KEY: ${SECRET_KEY:?请在 .env 里设置 SECRET_KEY}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请在 .env 里设置 ADMIN_PASSWORD}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+      DEEPSEEK_DISABLE_THINKING: ${DEEPSEEK_DISABLE_THINKING:-true}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      # 上传的素材要持久化，否则重建容器就没了
+      - uploads:/app/static/uploads
+
+  # 不用 PostgreSQL、只想快速看效果的备选：SQLite，数据落在命名卷里
+  app-sqlite:
+    build: .
+    restart: unless-stopped
+    profiles: ["sqlite"]
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/gacha.db
+      DEBUG: ${DEBUG:-true}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-secret-change-me-in-production}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin12345}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - sqlite_data:/data
+      - uploads:/app/static/uploads
+
+volumes:
+  pgdata:
+  sqlite_data:
+  uploads:
