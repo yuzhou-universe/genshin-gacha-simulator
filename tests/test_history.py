@@ -9,7 +9,8 @@ from sqlalchemy import select
 
 from app.models import PoolType, PullRecord
 from app.services import history_service
-from app.services.gacha_service import GachaService, get_or_create_currency
+from app.services.currency_service import get_or_create_currency
+from app.services.gacha_service import GachaService
 from app.services.history_service import HistoryFilter
 from app.services.rng import ScriptedRandomSource
 

@@ -47,6 +47,13 @@ class Settings(BaseSettings):
     initial_intertwined_fate: int = 20
     initial_acquaint_fate: int = 20
 
+    # ---------- 原石自助增加 ----------
+    #: 可选的增加档位（逗号分隔）。**服务端按此白名单校验**，
+    #: 客户端只能在这几档里选，不能传任意数值 —— 否则就等于开了个随便刷的口子。
+    primogem_topup_options: str = "10,160,1600"
+    #: 原石余额上限
+    primogem_topup_cap: int = 500_000
+
     # ---------- DeepSeek Flash ----------
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
@@ -68,6 +75,27 @@ class Settings(BaseSettings):
     @classmethod
     def _strip_trailing_slash(cls, v: str) -> str:
         return v.rstrip("/")
+
+    @property
+    def topup_options(self) -> list[int]:
+        """把 ``"10,160,1600"`` 解析成正整数列表。
+
+        用逗号分隔的字符串而不是 ``list[int]``：pydantic-settings 对复杂类型
+        默认按 JSON 解析，环境变量里写 ``10,160,1600`` 会直接报错，
+        而 JSON 数组在 shell 里又很难写得好看。
+        """
+        values: list[int] = []
+        for chunk in self.primogem_topup_options.split(","):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            try:
+                value = int(chunk)
+            except ValueError:
+                continue
+            if value > 0 and value not in values:
+                values.append(value)
+        return values or [10, 160, 1600]  # 配置写坏时回落到出厂档位，而不是变成空列表
 
     @property
     def ai_enabled(self) -> bool:

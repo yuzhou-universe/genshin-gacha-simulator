@@ -14,7 +14,8 @@ from app.core.exceptions import (
     PullCapExceeded,
 )
 from app.models import PRIMOGEMS_PER_FATE, CurrencyType, PoolType, PullRecord
-from app.services.gacha_service import GachaService, get_or_create_currency
+from app.services.currency_service import get_or_create_currency
+from app.services.gacha_service import GachaService
 from app.services.rng import ScriptedRandomSource
 
 

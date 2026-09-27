@@ -16,6 +16,7 @@ from contextlib import asynccontextmanager
 
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -23,10 +24,19 @@ from starlette.middleware.sessions import SessionMiddleware
 from alembic import command
 from app.core.config import BASE_DIR, settings
 from app.core.exceptions import AppError, AuthRequired
-from app.core.request_utils import wants_json
+from app.core.request_utils import describe_validation_error, wants_json
 from app.core.templating import render
 from app.db.session import SessionLocal
-from app.routers import admin, api_ai, api_history, api_pools, api_pull, auth, pages
+from app.routers import (
+    admin,
+    api_ai,
+    api_currency,
+    api_history,
+    api_pools,
+    api_pull,
+    auth,
+    pages,
+)
 from app.services import auth_service, seed_service
 
 logger = logging.getLogger("app")
@@ -96,12 +106,30 @@ def create_app() -> FastAPI:
             status_code=exc.status_code,
         )
 
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error(request: Request, exc: RequestValidationError):
+        """把 FastAPI 的结构化校验错误转成一句人话。
+
+        默认返回的 detail 是一个数组，前端拿到只能显示成 "[object Object]"，
+        用户完全不知道哪里填错了。
+        """
+        message = describe_validation_error(exc, "请求参数不合法")
+        if wants_json(request):
+            return JSONResponse({"detail": message}, status_code=422)
+        return render(
+            request,
+            "error.html",
+            {"status_code": 422, "message": message},
+            status_code=422,
+        )
+
     # ---------------- 路由 ----------------
     app.include_router(auth.router)
     app.include_router(pages.router)
     app.include_router(admin.router)
     app.include_router(api_pools.router)
     app.include_router(api_pull.router)
+    app.include_router(api_currency.router)
     app.include_router(api_history.router)
     app.include_router(api_ai.router)
 

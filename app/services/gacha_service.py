@@ -22,7 +22,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import (
     BadPullCount,
     EpitomizedDisabled,
-    InsufficientCurrency,
     NotAFeaturedWeapon,
     PoolClosed,
     PoolNotFound,
@@ -30,17 +29,15 @@ from app.core.exceptions import (
 )
 from app.db.base import ensure_utc, utcnow
 from app.models import (
-    PRIMOGEMS_PER_FATE,
-    CurrencyType,
     Pool,
     PoolItem,
     PullRecord,
     User,
-    UserCurrency,
     UserEpitomizedPath,
     UserPity,
 )
 from app.schemas.pull import EpitomizedOut, PityOut, PullItemOut, PullResultOut
+from app.services.currency_service import debit, get_or_create_currency
 from app.services.gacha_engine import (
     EpitomizedState,
     GachaEngine,
@@ -102,47 +99,6 @@ def compute_cost(pool: Pool, count: int) -> int:
     if count == 10 and pool.cost_per_ten is not None:
         return pool.cost_per_ten
     return pool.cost_per_pull * count
-
-
-def _debit(currency: UserCurrency, cost_currency: str, amount: int) -> None:
-    """扣除货币。道具不足时自动按 160:1 用原石补足（与线上一致）。"""
-    if cost_currency == CurrencyType.PRIMOGEMS:
-        if currency.primogems < amount:
-            raise InsufficientCurrency(f"原石不足，需要 {amount}，当前 {currency.primogems}")
-        currency.primogems -= amount
-        return
-
-    field = {
-        CurrencyType.INTERTWINED_FATE: "intertwined_fate",
-        CurrencyType.ACQUAINT_FATE: "acquaint_fate",
-    }.get(cost_currency)
-    if field is None:  # pragma: no cover - 枚举已封闭
-        raise InsufficientCurrency(f"未知的消耗货币类型: {cost_currency}")
-
-    balance = getattr(currency, field)
-    if balance >= amount:
-        setattr(currency, field, balance - amount)
-        return
-
-    shortfall = amount - balance
-    gems_needed = shortfall * PRIMOGEMS_PER_FATE
-    if currency.primogems < gems_needed:
-        label = CurrencyType(cost_currency).label
-        raise InsufficientCurrency(
-            f"{label}不足，需要 {amount}（缺 {shortfall} 个，"
-            f"折算需 {gems_needed} 原石），当前 {balance} 个、{currency.primogems} 原石"
-        )
-    setattr(currency, field, 0)
-    currency.primogems -= gems_needed
-
-
-async def get_or_create_currency(db: AsyncSession, user_id: int) -> UserCurrency:
-    currency = await db.get(UserCurrency, user_id)
-    if currency is None:
-        currency = UserCurrency(user_id=user_id)
-        db.add(currency)
-        await db.flush()
-    return currency
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +188,7 @@ class GachaService:
         # ---- 先扣费：失败就不消耗随机数、不推进保底、不留下半份记录 ----
         cost = compute_cost(pool, count)
         currency = await get_or_create_currency(self.db, user.id)
-        _debit(currency, pool.cost_currency, cost)
+        debit(currency, pool.cost_currency, cost)
 
         # ---- 载入状态并做惰性卡池结束重置 ----
         pity_row = await get_or_create_pity(self.db, user.id, pool.pity_group)

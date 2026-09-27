@@ -467,7 +467,7 @@ def test_validation_errors_are_specific_not_generic(body, expected_fragment):
     """
     from pydantic import ValidationError
 
-    from app.routers.auth import describe_validation_error
+    from app.core.request_utils import describe_validation_error
     from app.schemas.auth import RegisterRequest
 
     try:
@@ -482,7 +482,7 @@ def test_validation_errors_are_specific_not_generic(body, expected_fragment):
 
 
 def test_validation_error_falls_back_when_no_errors():
-    from app.routers.auth import describe_validation_error
+    from app.core.request_utils import describe_validation_error
 
     class _FakeExc:
         def errors(self):

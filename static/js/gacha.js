@@ -31,6 +31,9 @@
     curIntertwined: document.querySelector('[data-cur-intertwined]'),
     curAcquaint: document.querySelector('[data-cur-acquaint]'),
 
+    topup: document.querySelector('[data-topup]'),
+    topupToggle: document.querySelector('[data-topup-toggle]'),
+
     dockPool: document.querySelector('[data-dock-pool]'),
     dockPity: document.querySelector('[data-dock-pity]'),
     dockFill: document.querySelector('[data-dock-fill]'),
@@ -238,6 +241,76 @@
     el.curPrimogems.textContent = currency.primogems;
     el.curIntertwined.textContent = currency.intertwined_fate;
     el.curAcquaint.textContent = currency.acquaint_fate;
+    syncTopupState();
+  }
+
+  /** 顶到上限时禁用「+」，避免用户点了却什么都没发生。 */
+  function syncTopupState() {
+    if (!el.topupToggle || !el.topup) return;
+    const cap = Number(el.topup.dataset.cap) || 0;
+    const current = Number(el.curPrimogems.textContent.replace(/,/g, '')) || 0;
+    const reached = cap > 0 && current >= cap;
+
+    el.topupToggle.disabled = reached;
+    el.topupToggle.title = reached ? '已达上限' : '增加原石';
+
+    // 服务端在上限处是**截断**而不是拒绝，所以只要没满，任何档位都可以点
+    // （加不满也没关系，会如实告知实际加了多少）。只有已满时才禁用。
+    el.topup.querySelectorAll('[data-topup-amount]').forEach((btn) => {
+      btn.disabled = reached;
+    });
+
+    if (reached) closeTopup();
+  }
+
+  async function addPrimogems(amount, button) {
+    await window.App.withBusy(button, async () => {
+      try {
+        const data = await window.App.request('/api/currency/topup', {
+          method: 'POST',
+          body: { amount },
+        });
+
+        el.curPrimogems.textContent = data.primogems;
+        el.curPrimogems.classList.remove('is-bumped');
+        void el.curPrimogems.offsetWidth; // 重启动画
+        el.curPrimogems.classList.add('is-bumped');
+
+        if (data.added === 0) {
+          window.App.toast(`原石已达上限 ${data.cap.toLocaleString()}`, 'info');
+        } else if (data.capped) {
+          // 会被截断是因为上限，如实告知实际加了多少，而不是假装加满了
+          window.App.toast(
+            `已达上限，本次只增加 ${data.added.toLocaleString()}（当前 ${data.primogems.toLocaleString()}）`,
+            'info',
+            3600
+          );
+        } else {
+          window.App.toast(`原石 +${data.added.toLocaleString()}`, 'success');
+        }
+
+        syncTopupState();
+      } catch (err) {
+        window.App.toast(err.message, 'error');
+      }
+    });
+  }
+
+  function openTopup() {
+    if (!el.topup) return;
+    el.topup.hidden = false;
+    el.topupToggle.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeTopup() {
+    if (!el.topup) return;
+    el.topup.hidden = true;
+    el.topupToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleTopup() {
+    if (!el.topup) return;
+    el.topup.hidden ? openTopup() : closeTopup();
   }
 
   /* ------------------------------------------------------------------
@@ -421,6 +494,23 @@
       return;
     }
 
+    // ---- 增加原石 ----
+    const topupAmount = e.target.closest('[data-topup-amount]');
+    if (topupAmount) {
+      e.preventDefault();
+      await addPrimogems(Number(topupAmount.dataset.topupAmount), topupAmount);
+      return;
+    }
+    if (e.target.closest('[data-topup-toggle]')) {
+      e.preventDefault();
+      toggleTopup();
+      return;
+    }
+    // 点面板外部收起
+    if (el.topup && !el.topup.hidden && !e.target.closest('[data-topup]')) {
+      closeTopup();
+    }
+
     if (e.target.closest('[data-open-switcher]')) {
       e.preventDefault();
       openSwitcher();
@@ -455,6 +545,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!el.wish.hidden) closeWish();
+      else if (el.topup && !el.topup.hidden) closeTopup();
       else closeSwitcher();
     }
   });
@@ -485,6 +576,7 @@
      ------------------------------------------------------------------ */
   (async function init() {
     try {
+      syncTopupState(); // 余额已由服务端渲染，这里只需按上限同步「+」的可用状态
       // 货币余额已由服务端渲染进页面，这里只需加载卡池
       await loadPools();
     } catch (err) {

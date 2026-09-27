@@ -13,6 +13,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from app.core.deps import CurrentUser, DbSession, get_client_ip
 from app.core.exceptions import AppError, Forbidden
+from app.core.request_utils import describe_validation_error
 from app.core.security import validate_password, validate_username
 from app.core.templating import render
 from app.models import UserRole
@@ -43,38 +44,6 @@ async def read_payload(request: Request) -> dict[str, Any]:
 class AuthError(AppError):
     status_code = 400
     message = "认证失败"
-
-
-#: Pydantic 字段名 -> 中文标签，用于把校验错误翻译成人话
-_FIELD_LABELS = {"username": "用户名", "password": "密码"}
-
-
-def describe_validation_error(exc: PydanticValidationError, fallback: str) -> str:
-    """把 Pydantic 的校验错误转成用户能看懂的一句话。
-
-    直接吞掉原始错误、统一回一句"请填写用户名与密码"是很糟的体验：
-    用户明明填了，只是长度不对，却看到"请填写"。这里把真实原因带出来。
-    """
-    errors = exc.errors()
-    if not errors:
-        return fallback
-
-    first = errors[0]
-    field = str(first.get("loc", ("",))[-1])
-    label = _FIELD_LABELS.get(field, field)
-    kind = first.get("type", "")
-
-    if kind == "string_too_short":
-        limit = (first.get("ctx") or {}).get("min_length")
-        if field == "password":
-            return f"密码至少 {limit} 位"
-        return f"{label}至少 {limit} 个字符"
-    if kind == "string_too_long":
-        limit = (first.get("ctx") or {}).get("max_length")
-        return f"{label}最多 {limit} 个字符"
-    if kind == "missing":
-        return f"请填写{label}"
-    return f"{label}格式不正确"
 
 
 # --------------------------------------------------------------------------

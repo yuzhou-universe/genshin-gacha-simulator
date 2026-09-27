@@ -51,10 +51,28 @@
 
     <!-- 货币：由服务端直接渲染，避免首屏空值与额外请求 -->
     <div class="wallet">
-      <div class="wallet__item" title="原石">
+      <div class="wallet__item wallet__item--topup" title="原石">
         <span class="wallet__icon wallet__icon--gem"></span>
         <span class="wallet__value" data-cur-primogems>{{ current_user.primogems }}</span>
+
+        <button type="button" class="wallet__add" data-topup-toggle
+                aria-label="增加原石" aria-expanded="false"
+                {% if current_user.primogems >= primogem_topup_cap %}disabled title="已达上限"{% endif %}>+</button>
+
+        <!-- 增加原石：档位由服务端下发，与服务端白名单保持一致 -->
+        <div class="topup" data-topup hidden data-cap="{{ primogem_topup_cap }}">
+          <div class="topup__title">增加原石</div>
+          <div class="topup__options">
+            {% for option in primogem_topup_options %}
+            <button type="button" class="topup__option" data-topup-amount="{{ option }}">
+              +{{ option }}
+            </button>
+            {% endfor %}
+          </div>
+          <div class="topup__cap">余额上限 {{ "{:,}".format(primogem_topup_cap) }}</div>
+        </div>
       </div>
+
       <div class="wallet__item" title="纠缠之缘">
         <span class="wallet__icon wallet__icon--intertwined"></span>
         <span class="wallet__value" data-cur-intertwined>{{ current_user.intertwined_fate }}</span>

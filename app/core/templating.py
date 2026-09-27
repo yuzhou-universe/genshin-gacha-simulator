@@ -25,6 +25,10 @@ templates.env.globals.update(
         PoolType.BEGINNER.value: "新手祈愿",
     },
     default_5star_image="/static/img/placeholder-5star.svg",
+    # 原石自助增加的档位与上限。由服务端下发而不是写死在前端，
+    # 这样界面上的选项永远与服务端的白名单一致。
+    primogem_topup_options=settings.topup_options,
+    primogem_topup_cap=settings.primogem_topup_cap,
 )
 
 
