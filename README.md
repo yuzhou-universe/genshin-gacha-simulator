@@ -9,6 +9,43 @@ FastAPI + SQLAlchemy 2.0（异步）+ DeepSeek Flash 实现的抽卡模拟器，
 
 ---
 
+## 打包成软件（给不装 Python 的人用）
+
+想把它交给别人用，不需要对方装 Python。跑一条命令：
+
+```bash
+.venv/Scripts/python.exe build_windows.py
+```
+
+产出在 `release/`：
+
+| 文件 | 说明 |
+|---|---|
+| `原神抽卡模拟器-1.0.0-安装包.exe` | 安装向导：选目录、建开始菜单与桌面快捷方式、登记进「应用和功能」，**自带卸载程序** |
+| `原神抽卡模拟器-1.0.0-便携版.zip` | 解压即用，不写注册表、不需要安装 |
+
+前置：`pip install pyinstaller`；`winget install JRSoftware.InnoSetup --scope user`（用户级安装，不需要管理员）。
+
+### 安装后是什么样
+
+- 装到 `%LOCALAPPDATA%\Programs\原神抽卡模拟器\`，**全程不弹 UAC**
+- 双击快捷方式 → 弹出启动器窗口（显示访问地址、管理员账号密码、数据目录），同时自动打开浏览器
+- **首次运行生成随机管理员密码**并显示在启动器上。这一步是必要的：打包版没有源码目录的 `.env`，会回落到代码默认值 `Admin12345` —— 那等于每个拿到安装包的人都知道密码
+- 数据存在 `%LOCALAPPDATA%\GenshinGacha\`（数据库、上传素材、运行时 `.env`）。**备份就复制这个目录**
+- 卸载时询问是否删除用户数据，**默认保留**；静默卸载一律保留
+
+### 两个设计要点
+
+**只读资源与可写数据必须分开。** 装到 Program Files 之后程序目录不可写，所以模板与静态文件走 `RESOURCE_DIR`（PyInstaller 解包目录），数据库与上传走 `DATA_DIR`（用户目录）。详见 `app/core/paths.py`。
+
+**首次运行必须先写 `.env` 再读配置。** 若路径解析住在 `config.py` 里，第一次 `import` 就会初始化 `Settings`，那时 `.env` 还不存在，配置会被永久冻结成默认值。所以启动器的顺序是 `paths` → `bootstrap`（写 .env）→ `app.main`。
+
+### 已知限制
+
+**安装包没有代码签名**（证书需要付费购买），所以 Windows SmartScreen 会提示「未知发布者」，需要点「更多信息」→「仍要运行」。便携版与安装包都一样。
+
+---
+
 ## 快速开始
 
 ### 方式一：本机直接跑（推荐先试这个）
@@ -221,6 +258,9 @@ app/
 │   └── prompts.py         可配置提示词模板 + 本地文案
 ├── routers/             页面与 API
 └── data/seed.py         四个默认卡池的种子数据
+build_windows.py       一键构建 Windows 分发件
+gacha.spec             PyInstaller 打包规格
+packaging/             安装脚本、图标源、中文语言文件、面向用户的说明
 templates/               Jinja2 模板
 static/                  手写 CSS / 原生 JS / 内置 SVG 占位图
 tests/                   239 项测试
