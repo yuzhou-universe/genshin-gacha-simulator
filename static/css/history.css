@@ -197,3 +197,26 @@
   .records th:nth-child(6), .records td:nth-child(6),
   .records th:nth-child(7), .records td:nth-child(7) { display: none; }
 }
+
+/* --------------------------------------------------------------------------
+   AI 总结
+   -------------------------------------------------------------------------- */
+.ai-summary__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gold-line);
+}
+.ai-summary__text {
+  margin: 0;
+  color: var(--gold-pale);
+  font-size: 14.5px;
+  line-height: 1.8;
+  min-height: 1.8em;
+}
+/* 模型生成与本地模板降级用左侧色条区分，便于排查 AI 是否真的生效 */
+.ai-summary__text[data-source="model"] { border-left: 3px solid var(--gold); padding-left: 12px; }
+.ai-summary__text[data-source="local"] { border-left: 3px solid var(--text-faint); padding-left: 12px; color: var(--text-dim); }

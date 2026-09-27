@@ -346,19 +346,21 @@
   async function loadAiComment(result) {
     const five = result.items.find((i) => i.star === 5);
     try {
+      // 只回传游戏内公开信息：卡池 id、抽数、物品名称与星级、保底进度。
+      // 不含用户名、用户 id、会话等任何身份字段。
       const data = await window.App.request('/api/ai/comment', {
         method: 'POST',
         body: {
           pool_id: result.pool_id,
-          pool_name: result.pool_name,
-          batch_id: result.batch_id,
+          count: result.count,
+          until_hard_pity: result.pity.until_hard_pity_5,
+          guaranteed: result.pity.guaranteed_5,
           items: result.items.map((i) => ({
             name: i.name,
             star: i.star,
             is_up: i.is_up,
             is_pity: i.is_pity,
           })),
-          pity_5: result.pity.pity_5,
         },
       });
       if (data && data.comment) {

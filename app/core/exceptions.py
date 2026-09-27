@@ -49,8 +49,12 @@ class TooManyAttempts(AppError):
 # --------------------------------------------------------------------------
 # 抽卡
 # --------------------------------------------------------------------------
-class PoolNotFound(AppError):
+class NotFound(AppError):
     status_code = 404
+    message = "资源不存在"
+
+
+class PoolNotFound(NotFound):
     message = "卡池不存在"
 
 

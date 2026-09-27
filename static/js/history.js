@@ -212,6 +212,22 @@
     window.location.href = `/api/history/export?${qs()}`;
   });
 
+  // AI 总结：AI 不可用时后端会返回本地模板文案，因此这里永远有内容可显示
+  document.querySelector('[data-ai-summary]').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const out = document.querySelector('[data-ai-text]');
+    await window.App.withBusy(btn, async () => {
+      out.textContent = '正在生成…';
+      try {
+        const data = await window.App.request('/api/ai/history-summary');
+        out.textContent = data.text;
+        out.dataset.source = data.from_model ? 'model' : 'local';
+      } catch (err) {
+        out.textContent = '生成失败：' + err.message;
+      }
+    });
+  });
+
   document.querySelector('[data-pager]').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-page]');
     if (!btn || btn.disabled) return;
