@@ -48,9 +48,7 @@ class Pool(Base):
     # 常驻池保底组"（8 折相遇之缘免费推进常驻池保底）那个经济漏洞的关键。
     pity_group: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
 
-    description: Mapped[str] = mapped_column(
-        Text, default="", server_default="", nullable=False
-    )
+    description: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)
 
     # ---- 素材 ----
     banner_url: Mapped[str] = mapped_column(
@@ -77,9 +75,7 @@ class Pool(Base):
     is_main: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0", nullable=False
     )
-    sort_order: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False
-    )
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     open_at: Mapped[datetime | None] = mapped_column(TZDateTime, nullable=True)
     close_at: Mapped[datetime | None] = mapped_column(TZDateTime, nullable=True)
 
@@ -213,9 +209,7 @@ class PoolItem(Base):
     is_up: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="0", nullable=False, index=True
     )
-    weight: Mapped[float] = mapped_column(
-        Float, default=1.0, server_default="1.0", nullable=False
-    )
+    weight: Mapped[float] = mapped_column(Float, default=1.0, server_default="1.0", nullable=False)
     image_url: Mapped[str] = mapped_column(
         String(512), default="", server_default="", nullable=False
     )
@@ -225,9 +219,7 @@ class PoolItem(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default="1", nullable=False
     )
-    sort_order: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False
-    )
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
 
     pool: Mapped[Pool] = relationship(back_populates="items")
 

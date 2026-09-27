@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}跳转中 · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="panel" style="max-width:420px;margin:60px auto;text-align:center">
+  <p class="panel__title">你已登录</p>
+  <p style="color:var(--text-dim);margin-bottom:20px">正在前往你的页面…</p>
+  <a class="btn btn--primary" href="{{ target }}">立即前往</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.location.replace({{ target | tojson }});</script>
+{% endblock %}

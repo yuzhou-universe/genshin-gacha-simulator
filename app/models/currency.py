@@ -19,9 +19,7 @@ class UserCurrency(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    primogems: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False
-    )
+    primogems: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     intertwined_fate: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0", nullable=False
     )

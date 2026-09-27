@@ -29,15 +29,11 @@ class UserPity(Base):
     pity_group: Mapped[str] = mapped_column(String(32), nullable=False)
 
     #: 距上一个 5★ 的抽数。出 5★ 后归零。
-    pity_5: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False
-    )
+    pity_5: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     #: 距上一个 4★ 的抽数。**注意语义**：出 5★ 不会重置它。
     #: 它可能增长到超过 hard_pity_4（当 4★ 保底那一抽被 5★ 判定抢先命中时），
     #: 因此比较一律用 >=，且**不要**断言或存储 clamp 到 10。
-    pity_4: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False
-    )
+    pity_4: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
 
     #: 大保底：上一次 5★ 歪了，则下一次 5★ 必定是 UP。
     guaranteed_5: Mapped[bool] = mapped_column(
@@ -63,9 +59,7 @@ class UserEpitomizedPath(Base):
     """武器池的神铸定轨状态（命定值）。"""
 
     __tablename__ = "user_epitomized_paths"
-    __table_args__ = (
-        UniqueConstraint("user_id", "pool_id", name="uq_user_epitomized_user_pool"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "pool_id", name="uq_user_epitomized_user_pool"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(
@@ -80,9 +74,7 @@ class UserEpitomizedPath(Base):
         ForeignKey("pool_items.id", ondelete="SET NULL"), nullable=True
     )
     #: 命定值。达到 epitomized_max_points 后，下一个 5★ 必为定轨武器。
-    fate_points: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False
-    )
+    fate_points: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
 
     def __repr__(self) -> str:  # pragma: no cover - 调试用
         return (

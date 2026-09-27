@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+  {% block header %}
+  <header class="topbar">
+    <a class="topbar__brand" href="/">
+      <span class="topbar__brand-mark">✦</span>
+      <span class="topbar__brand-text">{{ app_name }}</span>
+    </a>
+
+    <nav class="topbar__nav">
+      {% if current_user %}
+        {% if current_user.role == 'admin' %}
+          <a class="topbar__link" href="/admin">后台管理</a>
+          <a class="topbar__link" href="/gacha">抽卡界面</a>
+        {% else %}
+          <a class="topbar__link" href="/gacha">祈愿</a>
+          <a class="topbar__link" href="/history">历史记录</a>
+        {% endif %}
+        <span class="topbar__user">{{ current_user.username }}</span>
+        <button type="button" class="topbar__link topbar__logout" data-logout>退出</button>
+      {% else %}
+        <a class="topbar__link" href="/login">登录</a>
+        <a class="topbar__link" href="/register">注册</a>
+      {% endif %}
+    </nav>
+  </header>
+  {% endblock %}
+
+  <main class="{% block main_class %}page{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+
+  <div id="toast-host" class="toast-host" aria-live="polite"></div>
+
+  <script src="/static/js/common.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}登录 · {{ app_name }}{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div class="auth-card__glow" aria-hidden="true"></div>
+
+  <h1 class="auth-card__title">欢迎回来</h1>
+  <p class="auth-card__subtitle">登录后即可开始祈愿</p>
+
+  <form class="auth-form" data-auth-form="/auth/login" novalidate>
+    <label class="field">
+      <span class="field__label">用户名</span>
+      <input class="field__input" type="text" name="username" autocomplete="username"
+             required minlength="3" maxlength="20" placeholder="3-20 位">
+    </label>
+
+    <label class="field">
+      <span class="field__label">密码</span>
+      <input class="field__input" type="password" name="password" autocomplete="current-password"
+             required minlength="8" placeholder="至少 8 位，含字母和数字">
+    </label>
+
+    <p class="form-error" data-error hidden></p>
+
+    <button class="btn btn--primary btn--block" type="submit">登 录</button>
+  </form>
+
+  <p class="auth-card__footer">
+    还没有账号？<a href="/register">立即注册</a>
+  </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/auth.js"></script>
+{% endblock %}
