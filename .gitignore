@@ -10,9 +10,20 @@
 *.db-shm
 gacha.db*
 
-# ---- 用户上传的素材（保留目录本身） ----
-static/uploads/*
-!static/uploads/.gitkeep
+# ---- 用户上传的素材 ----
+# 位置随「可写数据目录」走：开发时是项目根的 uploads/，
+# 打包后是 %LOCALAPPDATA%\GenshinGacha\uploads\
+uploads/
+static/uploads/
+
+# ---- 打包产物 ----
+# 注意 gacha.spec 是源码（打包规格），要提交，所以只忽略目录不忽略 *.spec
+dist/
+build/
+release/
+install.log
+packaging/_chromeprof/
+packaging/_*.png
 
 # ---- Python ----
 __pycache__/

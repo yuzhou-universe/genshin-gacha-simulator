@@ -1,0 +1,45 @@
+<!-- 刻意不写 width/height：只保留 viewBox 时，Chrome 会把 SVG 缩放到视口大小。
+     写了固有尺寸的话，小窗口（如 48x48）只会截到 256x256 文档的左上角 ——
+     那正好是圆角外的透明区域，生成出来的小图标就是空白的。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <!-- 底色：与抽卡界面的天空主题同源，深一档以便在浅色任务栏上也不糊 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%"   stop-color="#3f8fb8"/>
+      <stop offset="55%"  stop-color="#2b6d95"/>
+      <stop offset="100%" stop-color="#1d4e6e"/>
+    </linearGradient>
+
+    <linearGradient id="gold" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%"   stop-color="#fff3cf"/>
+      <stop offset="45%"  stop-color="#ffcc4d"/>
+      <stop offset="100%" stop-color="#d3921f"/>
+    </linearGradient>
+
+    <radialGradient id="halo" cx="50%" cy="46%" r="52%">
+      <stop offset="0%"   stop-color="#ffe9b8" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#ffe9b8" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <!-- 圆角方底 -->
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg)"/>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="none"
+        stroke="url(#gold)" stroke-width="3" opacity=".55"/>
+
+  <circle cx="128" cy="120" r="92" fill="url(#halo)"/>
+
+  <!-- 星形：先画一层模糊的做辉光，再叠实的 -->
+  <path d="M128 44 L152 106 L218 106 L165 146 L185 210 L128 172 L71 210 L91 146 L38 106 L104 106 Z"
+        fill="#ffcc4d" opacity=".55" filter="url(#soft)"/>
+  <path d="M128 44 L152 106 L218 106 L165 146 L185 210 L128 172 L71 210 L91 146 L38 106 L104 106 Z"
+        fill="url(#gold)"/>
+
+  <!-- 星心高光 -->
+  <path d="M128 78 L140 112 L176 112 L147 134 L158 168 L128 148 L98 168 L109 134 L80 112 L116 112 Z"
+        fill="#fff8e0" opacity=".45"/>
+</svg>

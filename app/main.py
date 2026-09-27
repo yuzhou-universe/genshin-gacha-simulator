@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from alembic import command
-from app.core.config import BASE_DIR, settings
+from app.core.config import settings
 from app.core.exceptions import AppError, AuthRequired
 from app.core.request_utils import describe_validation_error, wants_json
 from app.core.templating import render
@@ -48,9 +48,15 @@ def _run_migrations() -> None:
     Alembic 的 ``command.upgrade`` 内部会调用 ``asyncio.run()``，而 lifespan
     本身已处于事件循环中，直接调用会抛 "asyncio.run() cannot be called from a
     running event loop"。放进线程即可获得干净的事件循环。
+
+    路径取自 ``settings``（指向只读资源目录），打包后 Alembic 的脚本目录
+    位于 PyInstaller 的解包目录里，不能再用项目根的相对路径推导。
     """
-    cfg = AlembicConfig(str(BASE_DIR / "alembic.ini"))
-    cfg.set_main_option("script_location", str(BASE_DIR / "alembic"))
+    cfg = AlembicConfig(str(settings.alembic_ini))
+    cfg.set_main_option("script_location", str(settings.alembic_dir))
+    # 冻结环境下 alembic.ini 里的 prepend_sys_path=. 会指向解包目录，
+    # 那里没有 app 包，显式清掉以免导入失败
+    cfg.set_main_option("prepend_sys_path", "")
     command.upgrade(cfg, "head")
 
 
@@ -82,8 +88,13 @@ def create_app() -> FastAPI:
         session_cookie=settings.session_cookie,
         max_age=settings.session_max_age,
         same_site="lax",
-        # 生产环境走 HTTPS 时应置 True；开发环境为 False 否则 Cookie 不发出去
-        https_only=not settings.debug,
+        # 默认跟随 debug。桌面版显式配成 false：它以 http 提供服务，
+        # Cookie 带 Secure 标记就发不出去，登录会直接坏掉。
+        https_only=(
+            settings.session_https_only
+            if settings.session_https_only is not None
+            else not settings.debug
+        ),
     )
 
     # ---------------- 异常处理 ----------------
@@ -133,6 +144,15 @@ def create_app() -> FastAPI:
     app.include_router(api_history.router)
     app.include_router(api_ai.router)
 
+    # 上传目录在可写的数据目录里，必须单独挂载。
+    # 注意顺序：更具体的 /static/uploads 要排在 /static 前面，
+    # Starlette 按注册顺序匹配，反了就永远命中不到上传的素材。
+    settings.upload_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/static/uploads",
+        StaticFiles(directory=str(settings.upload_dir)),
+        name="uploads",
+    )
     app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 
     return app
