@@ -11,6 +11,21 @@ import pytest
 from app.services import auth_service
 
 
+def expected_pity_after(result: dict) -> int:
+    """按实际结果推导批次结束时的 pity_5。
+
+    **不能**写成"出金就是 0"。五星若出现在十连的第 2 抽，出金后计数会继续走，
+    批次结束时 pity_5 是 8 而不是 0。正确值是「最后 8 抽里没有五星」，
+    即 ``本批抽数 - 最后一次出金的序号``。
+
+    这个 helper 的存在本身就是个教训：HTTP 接口用的是真实随机源，
+    任何"假设不会出金"的断言都会有约 6% 的概率失败。
+    """
+    count = len(result["items"])
+    five_indices = [i["index"] for i in result["items"] if i["star"] == 5]
+    return count - max(five_indices) if five_indices else count
+
+
 async def register(client, username="traveler", password="Traveler123"):
     return await client.post("/auth/register", json={"username": username, "password": password})
 
@@ -185,15 +200,25 @@ async def test_pull_single_and_ten(client, seeded_db):
 
 
 async def test_pull_updates_currency_and_pity(client, seeded_db):
+    """扣费与保底推进。
+
+    注意：HTTP 接口用的是真实随机源，十连里有约 6% 的概率出金，
+    而出金会把 pity_5 清零。因此**不能**直接断言 pity_5 == 10 ——
+    那会是一个约 6% 概率失败的抖动测试。这里根据实际结果推导期望值。
+    """
     await register(client)
     pools = (await client.get("/api/pools")).json()
     char = next(p for p in pools if p["pool_type"] == "character")
 
     result = (await client.post("/api/pull/ten", json={"pool_id": char["id"]})).json()
 
+    # 消耗是确定的（与随机结果无关）
     assert result["currency"]["intertwined_fate"] == 10  # 初始 20 减去 10
-    assert result["pity"]["pity_5"] == 10
-    assert result["pity"]["until_hard_pity_5"] == 80
+
+    # 保底计数取决于本批出金的位置
+    expected = expected_pity_after(result)
+    assert result["pity"]["pity_5"] == expected
+    assert result["pity"]["until_hard_pity_5"] == char["hard_pity_5"] - expected
 
 
 async def test_pull_rejects_invalid_count(client, seeded_db):
@@ -240,9 +265,11 @@ async def test_pity_endpoint(client, seeded_db):
     assert before["pity_5"] == 0
     assert before["guaranteed_5"] is False
 
-    await client.post("/api/pull/ten", json={"pool_id": char["id"]})
+    result = (await client.post("/api/pull/ten", json={"pool_id": char["id"]})).json()
     after = (await client.get(f"/api/pull/pity/{char['id']}")).json()
-    assert after["pity_5"] == 10
+
+    # 同上：按实际出金位置推导，避免抖动
+    assert after["pity_5"] == expected_pity_after(result)
 
 
 # ===========================================================================
