@@ -1,10 +1,110 @@
 {% extends "base.html" %}
 {% block title %}历史记录 · {{ app_name }}{% endblock %}
-{% block main_class %}history-page{% endblock %}
+{% block main_class %}page history-page{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/history.css">{% endblock %}
 
 {% block content %}
-<div class="panel" style="max-width:560px;margin:60px auto;text-align:center">
-  <p class="panel__title">历史记录</p>
-  <p style="color:var(--text-dim)">阶段 5 实现。</p>
-</div>
+<h1 class="history-title">祈愿历史</h1>
+
+<!-- ================= 筛选 ================= -->
+<section class="panel filters">
+  <div class="filters__grid">
+    <label class="field">
+      <span class="field__label">卡池</span>
+      <select class="field__select" data-f-pool>
+        <option value="">全部卡池</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field__label">星级</span>
+      <select class="field__select" data-f-star>
+        <option value="">全部星级</option>
+        <option value="5">五星</option>
+        <option value="4">四星</option>
+        <option value="3">三星</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field__label">是否 UP</span>
+      <select class="field__select" data-f-up>
+        <option value="">全部</option>
+        <option value="true">仅 UP</option>
+        <option value="false">仅非 UP</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field__label">开始日期</span>
+      <input class="field__input" type="date" data-f-from>
+    </label>
+
+    <label class="field">
+      <span class="field__label">结束日期</span>
+      <input class="field__input" type="date" data-f-to>
+    </label>
+
+    <div class="filters__actions">
+      <button type="button" class="btn btn--primary btn--sm" data-apply>筛选</button>
+      <button type="button" class="btn btn--ghost btn--sm" data-reset>重置</button>
+      <button type="button" class="btn btn--ghost btn--sm" data-export>导出 CSV</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 统计 ================= -->
+<section class="stat-grid" data-stats>
+  <div class="stat-card"><span class="stat-card__label">总抽数</span><b class="stat-card__value" data-s="total_pulls">—</b></div>
+  <div class="stat-card stat-card--five"><span class="stat-card__label">五星</span><b class="stat-card__value" data-s="five_star_count">—</b></div>
+  <div class="stat-card stat-card--four"><span class="stat-card__label">四星</span><b class="stat-card__value" data-s="four_star_count">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">UP 数量</span><b class="stat-card__value" data-s="up_count">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">平均出金</span><b class="stat-card__value" data-s="average_pulls_per_five_star">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">出金率</span><b class="stat-card__value" data-s="five_star_rate">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">最非 / 最欧</span><b class="stat-card__value" data-s="extremes">—</b></div>
+  <div class="stat-card"><span class="stat-card__label">歪了</span><b class="stat-card__value" data-s="lost_5050_count">—</b></div>
+</section>
+
+<!-- ================= 各卡池保底进度 ================= -->
+<section class="panel">
+  <h2 class="panel__title">各卡池保底进度</h2>
+  <div class="progress-list" data-progress></div>
+</section>
+
+<!-- ================= 记录列表 ================= -->
+<section class="panel">
+  <div class="records__head">
+    <h2 class="panel__title" style="border:0;margin:0;padding:0">抽卡记录</h2>
+    <span class="records__count" data-total></span>
+  </div>
+
+  <div class="records__wrap">
+    <table class="records">
+      <thead>
+        <tr>
+          <th>时间</th>
+          <th>卡池</th>
+          <th>物品</th>
+          <th class="ta-c">星级</th>
+          <th class="ta-c">UP</th>
+          <th class="ta-c">保底</th>
+          <th class="ta-c">出金抽数</th>
+        </tr>
+      </thead>
+      <tbody data-rows></tbody>
+    </table>
+  </div>
+
+  <div class="pager" data-pager hidden>
+    <button type="button" class="btn btn--ghost btn--sm" data-page="prev">上一页</button>
+    <span class="pager__info" data-page-info></span>
+    <button type="button" class="btn btn--ghost btn--sm" data-page="next">下一页</button>
+  </div>
+
+  <p class="empty" data-empty hidden>没有符合条件的记录</p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/history.js"></script>
 {% endblock %}

@@ -1,0 +1,199 @@
+/* ==========================================================================
+   历史记录页
+   ========================================================================== */
+
+.history-title {
+  font-family: var(--font-display);
+  color: var(--gold);
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  margin: 0 0 18px;
+}
+
+.history-page { display: flex; flex-direction: column; gap: 18px; }
+
+/* --------------------------------------------------------------------------
+   筛选
+   -------------------------------------------------------------------------- */
+.filters { padding: 16px 20px; }
+.filters__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+.filters .field { margin-bottom: 0; }
+.filters__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: end;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+/* --------------------------------------------------------------------------
+   统计卡片
+   -------------------------------------------------------------------------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--gold-line);
+  background: linear-gradient(160deg, var(--bg-panel), var(--bg-deep));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-card__label { color: var(--text-faint); font-size: 12px; letter-spacing: 0.06em; }
+.stat-card__value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--gold-pale);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.stat-card--five { border-color: rgba(255, 177, 63, 0.55); }
+.stat-card--five .stat-card__value { color: var(--star-5); }
+.stat-card--four { border-color: rgba(162, 86, 225, 0.5); }
+.stat-card--four .stat-card__value { color: var(--star-4); }
+
+/* --------------------------------------------------------------------------
+   保底进度
+   -------------------------------------------------------------------------- */
+.progress-list { display: flex; flex-direction: column; gap: 14px; }
+
+.progress-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) 3fr auto;
+  gap: 14px;
+  align-items: center;
+}
+.progress-row__name { color: var(--gold-pale); font-size: 13.5px; }
+.progress-row__name small { display: block; color: var(--text-faint); font-size: 11px; margin-top: 2px; }
+
+.progress-row__track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+.progress-row__fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+  box-shadow: 0 0 9px rgba(255, 204, 77, 0.5);
+  transition: width 0.4s ease;
+}
+.progress-row__fill--guaranteed {
+  background: linear-gradient(90deg, #6f4fd0, var(--star-4));
+  box-shadow: 0 0 9px rgba(162, 86, 225, 0.6);
+}
+.progress-row__meta { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.progress-row__meta b { color: var(--gold); }
+
+/* --------------------------------------------------------------------------
+   记录表
+   -------------------------------------------------------------------------- */
+.records__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gold-line);
+}
+.records__count { color: var(--text-faint); font-size: 12.5px; }
+
+.records__wrap { overflow-x: auto; }
+
+.records {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.records th {
+  text-align: left;
+  padding: 9px 10px;
+  color: var(--text-faint);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--gold-line);
+  white-space: nowrap;
+}
+.records td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(211, 188, 142, 0.13);
+  color: var(--text);
+  white-space: nowrap;
+}
+.records tbody tr:hover { background: rgba(255, 204, 77, 0.05); }
+.records tbody tr:last-child td { border-bottom: none; }
+.ta-c { text-align: center; }
+
+.records .cell-time { color: var(--text-dim); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.records .cell-pool { color: var(--text-dim); font-size: 12.5px; }
+
+.item-name { display: inline-flex; align-items: center; gap: 7px; }
+.item-name__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--star-color, var(--gold));
+  box-shadow: 0 0 7px var(--star-glow, transparent);
+  flex: none;
+}
+.item-name--five { color: var(--star-5); font-weight: 600; }
+.item-name--four { color: var(--star-4); }
+.item-name--three { color: var(--text-dim); }
+
+.records .thumb {
+  width: 30px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid var(--gold-line);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.progress-row,
+.pager { margin-top: 14px; }
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gold-line);
+}
+.pager__info { color: var(--text-dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.empty { text-align: center; color: var(--text-faint); padding: 34px 0; margin: 0; }
+
+/* --------------------------------------------------------------------------
+   移动端
+   -------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .history-title { font-size: 20px; }
+  .filters__grid { grid-template-columns: 1fr 1fr; }
+  .filters__actions { justify-content: stretch; }
+  .filters__actions .btn { flex: 1; }
+  .stat-grid { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
+  .stat-card { padding: 10px 12px; }
+  .stat-card__value { font-size: 18px; }
+
+  .progress-row { grid-template-columns: 1fr; gap: 6px; }
+  .progress-row__meta { text-align: right; }
+
+  /* 移动端隐藏次要列，保留核心信息 */
+  .records th:nth-child(6), .records td:nth-child(6),
+  .records th:nth-child(7), .records td:nth-child(7) { display: none; }
+}
