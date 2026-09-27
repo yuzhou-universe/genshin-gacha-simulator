@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 测试与代码检查
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # 声明支持 3.11+，这里验最老与最新的两端。
+        # 本地开发用的是 3.14，如果只测 3.14，3.11 上的兼容问题会漏掉。
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 代码检查（ruff）
+        run: ruff check .
+
+      - name: 格式检查（black）
+        run: black --check .
+
+      - name: 运行测试
+        # 测试全程不需要网络：AI 相关用例都走 httpx.MockTransport，
+        # 数据库用临时 SQLite 文件，因此 CI 里可以离线跑通。
+        run: pytest -q
