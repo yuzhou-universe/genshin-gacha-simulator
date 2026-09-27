@@ -21,19 +21,30 @@ def pool_to_out(pool: Pool, pulls_done: int = 0) -> PoolOut:
     if pool.lifetime_pull_cap is not None:
         remaining = max(0, pool.lifetime_pull_cap - pulls_done)
 
+    def to_out(item) -> PoolItemOut:
+        return PoolItemOut(
+            id=item.id,
+            name=item.name,
+            item_type=item.item_type,
+            star=item.star,
+            is_up=item.is_up,
+            image_url=item.image_url,
+            icon_url=item.icon_url,
+        )
+
     def to_items(star: int) -> list[PoolItemOut]:
-        return [
-            PoolItemOut(
-                id=i.id,
-                name=i.name,
-                item_type=i.item_type,
-                star=i.star,
-                is_up=i.is_up,
-                image_url=i.image_url,
-                icon_url=i.icon_url,
-            )
-            for i in pool.up_items(star)
-        ]
+        return [to_out(i) for i in pool.up_items(star)]
+
+    # 常驻/新手池没有 UP，海报卡改用池中的五星来展示，
+    # 否则这两类卡池的卡片右半幅会是空白
+    up5 = to_items(5)
+    if up5:
+        featured = up5[:3]
+    else:
+        featured = [
+            to_out(i) for i in sorted(pool.items, key=lambda x: (x.sort_order, x.id))
+            if i.star == 5 and i.is_active
+        ][:3]
 
     return PoolOut(
         id=pool.id,
@@ -72,6 +83,7 @@ def pool_to_out(pool: Pool, pulls_done: int = 0) -> PoolOut:
         soft_pity_cap_pull=soft_pity_cap_pull(rules),
         up_items_5=to_items(5),
         up_items_4=to_items(4),
+        featured_items_5=featured,
     )
 
 

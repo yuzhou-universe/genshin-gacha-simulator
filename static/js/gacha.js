@@ -1,10 +1,11 @@
-/* 抽卡界面：底部大图 + 固定操作 UI + 固定抽卡演出。
+/* 抽卡界面（对齐原神实机）
  *
- * 演出流程对所有卡池完全一致，不随卡池切换而变化：
- *   星光跃迁 → 结果逐个翻出 → 若有五星，最后单独呈现 → AI 点评
+ * 结构：顶部页签切换卡池 / 居中横向海报卡 / 底栏祈愿按钮
+ * 演出：星光跃迁 → 结果逐个翻出 → 若有五星，最后单独呈现 → AI 点评
+ *       所有卡池共用同一套，不随卡池切换而变化
  *
- * 抽卡接口立即返回结果，AI 点评是**另发的异步请求**。因此模型超时、
- * 报错、未配置，都只影响那句点评，抽卡本身已经完成。
+ * 抽卡接口立即返回结果，AI 点评是**另发的异步请求**。因此模型超时、报错、
+ * 未配置，都只影响那句点评，抽卡本身已经完成。
  */
 (function () {
   'use strict';
@@ -12,70 +13,106 @@
   const PLACEHOLDER_5STAR = '/static/img/placeholder-5star.svg';
   const DEFAULT_BG = '/static/img/banner-default.svg';
 
+  const POOL_TYPE_LABEL = {
+    character: '角色活动祈愿',
+    weapon: '武器活动祈愿',
+    standard: '常驻祈愿',
+    beginner: '新手祈愿',
+  };
+
+  const CURRENCY = {
+    primogems: { label: '原石', icon: 'gem' },
+    intertwined_fate: { label: '纠缠之缘', icon: 'intertwined' },
+    acquaint_fate: { label: '相遇之缘', icon: 'acquaint' },
+  };
+
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  const qs = (sel) => document.querySelector(sel);
+  const esc = window.App.escapeHtml;
+
   const el = {
-    art: document.querySelector('[data-pool-art]'),
-    bg: document.querySelector('[data-pool-bg]'),
-    banner: document.querySelector('[data-pool-banner]'),
-    name: document.querySelector('[data-pool-name]'),
-    desc: document.querySelector('[data-pool-desc]'),
-    up: document.querySelector('[data-pool-up]'),
-    upItems: document.querySelector('[data-pool-up-items]'),
-    rates: document.querySelector('[data-pool-rates]'),
-    epitomized: document.querySelector('[data-epitomized]'),
-    epiPoints: document.querySelector('[data-epi-points]'),
-    epiChoices: document.querySelector('[data-epi-choices]'),
+    banner: qs('[data-banner]'),
+    poolTabs: qs('[data-pool-tabs]'),
+    bg: qs('[data-pool-bg]'),
 
-    curPrimogems: document.querySelector('[data-cur-primogems]'),
-    curIntertwined: document.querySelector('[data-cur-intertwined]'),
-    curAcquaint: document.querySelector('[data-cur-acquaint]'),
+    poolType: qs('[data-pool-type]'),
+    poolName: qs('[data-pool-name]'),
+    poolLead: qs('[data-pool-lead]'),
+    poolHighlight: qs('[data-pool-highlight]'),
+    poolDesc: qs('[data-pool-desc]'),
+    poolTimer: qs('[data-pool-timer]'),
+    poolArtImg: qs('[data-pool-art-img]'),
+    plate: qs('[data-plate]'),
+    plateName: qs('[data-plate-name]'),
+    plateStars: qs('[data-plate-stars]'),
+    upFlag: qs('[data-up-flag]'),
+    poolDetail: qs('[data-pool-detail]'),
 
-    topup: document.querySelector('[data-topup]'),
-    topupToggle: document.querySelector('[data-topup-toggle]'),
+    curPrimogems: qs('[data-cur-primogems]'),
+    curContext: qs('[data-cur-context]'),
+    curContextIcon: qs('[data-cur-context-icon]'),
+    curContextValue: qs('[data-cur-context-value]'),
+    curOther: qs('[data-cur-other]'),
+    curOtherIcon: qs('[data-cur-other-icon]'),
+    curOtherValue: qs('[data-cur-other-value]'),
 
-    dockPool: document.querySelector('[data-dock-pool]'),
-    dockPity: document.querySelector('[data-dock-pity]'),
-    dockFill: document.querySelector('[data-dock-fill]'),
-    dockNote: document.querySelector('[data-dock-note]'),
-    dockCost: document.querySelector('[data-dock-cost]'),
+    walletSource: qs('[data-wallet]'),
+    topup: qs('[data-topup]'),
+    topupToggle: qs('[data-topup-toggle]'),
 
-    switcher: document.querySelector('[data-switcher]'),
-    poolList: document.querySelector('[data-pool-list]'),
+    epitomized: qs('[data-epitomized]'),
+    epiDial: qs('[data-epi-dial]'),
+    epiPoints: qs('[data-epi-points]'),
+    epiName: qs('[data-epi-name]'),
+    epiChoices: qs('[data-epi-choices]'),
+    epiPicker: qs('[data-epi-picker]'),
 
-    wish: document.querySelector('[data-wish]'),
-    warp: document.querySelector('[data-wish-warp]'),
-    grid: document.querySelector('[data-wish-grid]'),
-    five: document.querySelector('[data-wish-five]'),
-    fiveImg: document.querySelector('[data-five-img]'),
-    fiveName: document.querySelector('[data-five-name]'),
-    fiveTag: document.querySelector('[data-five-tag]'),
-    ai: document.querySelector('[data-wish-ai]'),
+    detail: qs('[data-detail]'),
+
+    wish: qs('[data-wish]'),
+    warp: qs('[data-wish-warp]'),
+    grid: qs('[data-wish-grid]'),
+    five: qs('[data-wish-five]'),
+    fiveImg: qs('[data-five-img]'),
+    fiveName: qs('[data-five-name]'),
+    fiveTag: qs('[data-five-tag]'),
+    ai: qs('[data-wish-ai]'),
   };
 
   const state = {
     pools: [],
     current: null,
-    pity: {},        // pool_id -> { pity_5, ... }
+    pity: {},
+    wallet: { primogems: 0, intertwined_fate: 0, acquaint_fate: 0 },
     busy: false,
     skip: false,
+    timer: null,
   };
 
-  const esc = window.App.escapeHtml;
   const sleep = (ms) => new Promise((r) => setTimeout(r, state.skip ? 0 : ms));
 
-  /* ------------------------------------------------------------------
-     数据加载
-     ------------------------------------------------------------------ */
+  /* ==================================================================
+     数据
+     ================================================================== */
   async function loadPools() {
     state.pools = await window.App.request('/api/pools');
     if (!state.pools.length) {
-      el.name.textContent = '暂无开放中的卡池';
-      el.desc.textContent = '请联系管理员在后台开启卡池。';
+      el.poolName.textContent = '暂无开放中的卡池';
+      el.poolDesc.textContent = '请联系管理员在后台开启卡池。';
       return;
     }
-    const main = state.pools.find((p) => p.is_main) || state.pools[0];
-    await selectPool(main.id);
+    renderTabs();
+    // 优先沿用上次选择，其次主推，最后第一个
+    let last = null;
+    try {
+      last = Number(localStorage.getItem('gacha:lastPool'));
+    } catch (_) { /* 隐私模式下忽略 */ }
+    const pool =
+      state.pools.find((p) => p.id === last) ||
+      state.pools.find((p) => p.is_main) ||
+      state.pools[0];
+    await selectPool(pool.id);
   }
 
   async function selectPool(poolId) {
@@ -84,10 +121,11 @@
     state.current = pool;
     try {
       localStorage.setItem('gacha:lastPool', String(poolId));
-    } catch (_) { /* 隐私模式下忽略 */ }
+    } catch (_) { /* 忽略 */ }
 
-    renderPool(pool);
-    closeSwitcher();
+    renderTabs();
+    renderBanner(pool);
+    renderWallet();
     await refreshPity(pool.id);
   }
 
@@ -95,170 +133,247 @@
     try {
       const data = await window.App.request('/api/pull/pity/' + poolId);
       state.pity[poolId] = data;
-      renderPity();
+      renderEpitomized();
     } catch (_) { /* 保底信息拿不到不影响抽卡 */ }
   }
 
-  /* ------------------------------------------------------------------
-     渲染
-     ------------------------------------------------------------------ */
-  function renderPool(pool) {
-    el.name.textContent = pool.name;
-    el.desc.textContent = pool.description || '';
-
-    el.bg.src = pool.background_image_url || DEFAULT_BG;
-    if (pool.banner_url) {
-      el.banner.src = pool.banner_url;
-      el.banner.hidden = false;
-    } else {
-      el.banner.hidden = true;
-    }
-
-    // UP 内容
-    const ups = pool.up_items_5.concat(pool.up_items_4);
-    el.up.hidden = ups.length === 0;
-    el.upItems.innerHTML = ups
-      .map(
-        (i) =>
-          `<span class="up-chip star-${i.star}">
-             <span class="up-chip__star">${'★'.repeat(i.star)}</span>${esc(i.name)}
-           </span>`
-      )
+  /* ==================================================================
+     顶栏：卡池页签
+     ================================================================== */
+  function renderTabs() {
+    el.poolTabs.innerHTML = state.pools
+      .map((p) => {
+        const active = state.current && p.id === state.current.id;
+        const icon = p.icon_url
+          ? `<img class="pool-tab__img" src="${esc(p.icon_url)}" alt="">`
+          : `<span class="pool-tab__fallback">${esc(p.name.slice(0, 1))}</span>`;
+        return `<button type="button" class="pool-tab pool-theme--${esc(p.pool_type)}${
+          active ? ' is-active' : ''
+        }" data-pool="${p.id}" title="${esc(p.name)}"
+          style="--accent:${
+            { character: '#2fa89f', weapon: '#e0863a', standard: '#8375d4', beginner: '#4f9e6a' }[
+              p.pool_type
+            ] || '#d9a441'
+          }">
+          ${icon}
+          <span class="pool-tab__name">${esc(p.name)}</span>
+        </button>`;
+      })
       .join('');
-
-    renderRates(pool);
-    renderEpitomized(pool);
-    renderDock(pool, state.pity[pool.id]);
   }
 
-  function renderRates(p) {
-    const lines = [];
-    const pct = (v) => (v * 100).toFixed(1).replace(/\.0$/, '') + '%';
+  /* ==================================================================
+     海报卡
+     ================================================================== */
+  function renderBanner(pool) {
+    el.banner.className = 'banner pool-theme--' + pool.pool_type;
 
-    lines.push(`五星基础概率 <b>${pct(p.base_rate_5)}</b>，最多 <b>${p.hard_pity_5}</b> 抽必出五星`);
-    lines.push(`四星基础概率 <b>${pct(p.base_rate_4)}</b>，最多 <b>${p.hard_pity_4}</b> 抽必出四星或以上`);
+    el.poolType.textContent = POOL_TYPE_LABEL[pool.pool_type] || '祈愿';
+    el.poolName.textContent = pool.name;
+    el.poolDesc.textContent = pool.description || '';
 
-    if (p.soft_pity_enabled) {
-      lines.push(
-        `第 <b>${p.soft_pity_start}</b> 抽起五星概率每抽提升 <b>${pct(p.soft_pity_step)}</b>` +
-          (p.soft_pity_cap_pull
-            ? `，第 <b>${p.soft_pity_cap_pull}</b> 抽到达 100%`
-            : '')
-      );
+    const hasUp = pool.up_items_5.length > 0;
+    el.poolLead.hidden = !hasUp;
+    el.poolHighlight.textContent = '每十次祈愿必出四星或以上物品。';
+
+    // 背景图：管理员为卡池设置的整屏背景，未设置则用内置晴空
+    el.bg.src = pool.background_image_url || DEFAULT_BG;
+
+    // 立绘与名牌：有 UP 用 UP，没有（常驻/新手）用池中的五星
+    const featured = (pool.featured_items_5 || [])[0];
+    if (featured) {
+      el.poolArtImg.src = featured.image_url || PLACEHOLDER_5STAR;
+      el.poolArtImg.alt = featured.name;
+      el.poolArtImg.onerror = () => {
+        el.poolArtImg.onerror = null;
+        el.poolArtImg.src = PLACEHOLDER_5STAR;
+      };
+      el.poolArtImg.hidden = false;
+      el.plateName.textContent = featured.name;
+      el.plateStars.textContent = '★'.repeat(featured.star);
+      el.plate.hidden = false;
+      el.upFlag.hidden = !featured.is_up;
+    } else {
+      el.poolArtImg.hidden = true;
+      el.plate.hidden = true;
+      el.upFlag.hidden = true;
     }
 
-    if (p.has_5050) {
+    renderTimer(pool);
+    renderDetail(pool);
+  }
+
+  /** 剩余时间倒计时。每分钟刷新一次就够了 —— 秒级跳动反而干扰阅读。 */
+  function renderTimer(pool) {
+    if (state.timer) {
+      clearInterval(state.timer);
+      state.timer = null;
+    }
+    if (!pool.close_at) {
+      // 没设结束时间就是长期开放。这里不整块隐藏：区块留在原位，
+      // 海报卡左下才不会空出一大块。
+      el.poolTimer.innerHTML = '<b>长期开放</b>';
+      el.poolTimer.hidden = false;
+      return;
+    }
+
+    const end = new Date(pool.close_at).getTime();
+    const tick = () => {
+      const ms = end - Date.now();
+      if (ms <= 0) {
+        el.poolTimer.innerHTML = '<b>已结束</b>';
+        return;
+      }
+      const d = Math.floor(ms / 86400000);
+      const h = Math.floor(ms / 3600000) % 24;
+      const m = Math.floor(ms / 60000) % 60;
+      el.poolTimer.innerHTML = `<b>${d}天${h}时${m}分</b>`;
+    };
+
+    tick();
+    el.poolTimer.hidden = false;
+    state.timer = setInterval(tick, 30000);
+  }
+
+  /** 详情弹窗内容：概率说明 + 展示物品。复用同一份数据，不额外请求。 */
+  function renderDetail(pool) {
+    const pct = (v) => (v * 100).toFixed(1).replace(/\.0$/, '') + '%';
+    const lines = [];
+
+    lines.push(
+      `五星基础概率 <b>${pct(pool.base_rate_5)}</b>，最多 <b>${pool.hard_pity_5}</b> 抽必出五星`
+    );
+    lines.push(
+      `四星基础概率 <b>${pct(pool.base_rate_4)}</b>，最多 <b>${pool.hard_pity_4}</b> 抽必出四星或以上`
+    );
+    if (pool.soft_pity_enabled) {
       lines.push(
-        `五星有 <b>${pct(p.up_rate_5)}</b> 概率为 UP 物品；` +
-          `若未获得 UP，则下一个五星必定为 UP`
+        `第 <b>${pool.soft_pity_start}</b> 抽起五星概率每抽提升 <b>${pct(pool.soft_pity_step)}</b>` +
+          (pool.soft_pity_cap_pull ? `，第 <b>${pool.soft_pity_cap_pull}</b> 抽到达 100%` : '')
+      );
+    }
+    if (pool.has_5050) {
+      lines.push(
+        `五星有 <b>${pct(pool.up_rate_5)}</b> 概率为 UP 物品；若未获得 UP，则下一个五星必定为 UP`
       );
     } else {
       lines.push('本卡池<b>无 UP</b>，所有五星均来自固定物品池');
     }
-
-    if (p.epitomized_enabled) {
+    if (pool.epitomized_enabled) {
       lines.push(
-        `神铸定轨：命定值满 <b>${p.epitomized_max_points}</b> 后，下一个五星必定是定轨武器`
+        `神铸定轨：命定值满 <b>${pool.epitomized_max_points}</b> 后，下一个五星必定是定轨武器`
       );
     }
-    if (p.capturing_radiance_enabled) {
+    if (pool.capturing_radiance_enabled) {
       lines.push('已开启<b>捕获明光</b>，连续歪三次后下一个五星必定为 UP');
     }
-    if (p.soft_pity_cap_pull && p.soft_pity_cap_pull < p.hard_pity_5) {
+    if (pool.soft_pity_cap_pull && pool.soft_pity_cap_pull < pool.hard_pity_5) {
       lines.push(
-        `<b>提示：</b>本卡池五星概率在第 ${p.soft_pity_cap_pull} 抽即到达 100%，` +
-          `早于硬保底 ${p.hard_pity_5} 抽`
+        `本卡池五星概率在第 ${pool.soft_pity_cap_pull} 抽即到达 100%，早于硬保底 ${pool.hard_pity_5} 抽`
       );
     }
-    if (p.lifetime_pull_cap) {
-      lines.push(`本卡池终身最多可抽 <b>${p.lifetime_pull_cap}</b> 抽`);
+    if (pool.lifetime_pull_cap) {
+      lines.push(`本卡池终身最多可抽 <b>${pool.lifetime_pull_cap}</b> 抽`);
     }
 
-    el.rates.innerHTML = lines.map((t) => `<div>· ${t}</div>`).join('');
+    const chips = (items) =>
+      items
+        .map(
+          (i) => `<span class="detail-chip star-${i.star}">
+            ${'★'.repeat(i.star)} ${esc(i.name)}
+          </span>`
+        )
+        .join('');
+
+    const up5 = pool.up_items_5 || [];
+    const up4 = pool.up_items_4 || [];
+
+    el.poolDetail.innerHTML = `
+      <div class="detail-block">
+        <div class="detail-block__title">概率说明</div>
+        ${lines.map((t) => `<div class="detail-line">· ${t}</div>`).join('')}
+      </div>
+      ${
+        up5.length
+          ? `<div class="detail-block">
+               <div class="detail-block__title">五星 UP</div>
+               <div class="detail-items">${chips(up5)}</div>
+             </div>`
+          : ''
+      }
+      ${
+        up4.length
+          ? `<div class="detail-block">
+               <div class="detail-block__title">四星 UP</div>
+               <div class="detail-items">${chips(up4)}</div>
+             </div>`
+          : ''
+      }
+      ${
+        !up5.length
+          ? `<div class="detail-block">
+               <div class="detail-block__title">五星物品</div>
+               <div class="detail-items">${chips(pool.featured_items_5 || [])}</div>
+             </div>`
+          : ''
+      }`;
   }
 
-  function renderEpitomized(pool) {
-    if (!pool.epitomized_enabled) {
-      el.epitomized.hidden = true;
-      return;
-    }
-    el.epitomized.hidden = false;
-    const epi = state.pity[pool.id] && state.pity[pool.id].epitomized;
-    const points = epi ? epi.fate_points : 0;
-    const max = epi ? epi.max_points : pool.epitomized_max_points;
-    const charted = epi ? epi.charted_item_id : null;
-
-    el.epiPoints.innerHTML = `命定值 <b>${points}</b> / ${max}`;
-    el.epiChoices.innerHTML = pool.up_items_5
-      .map(
-        (i) =>
-          `<button type="button" class="epi-choice${i.id === charted ? ' is-active' : ''}"
-                   data-epi="${i.id}">${esc(i.name)}</button>`
-      )
-      .join('');
+  /* ==================================================================
+     货币
+     ================================================================== */
+  function otherFate(costCurrency) {
+    return costCurrency === 'intertwined_fate' ? 'acquaint_fate' : 'intertwined_fate';
   }
 
-  function renderDock(pool, pity) {
-    el.dockPool.textContent = pool.name;
+  function renderWallet() {
+    const w = state.wallet;
+    el.curPrimogems.textContent = w.primogems;
 
-    const cost = pool.cost_per_pull;
-    const ten = pool.cost_per_ten != null ? pool.cost_per_ten : cost * 10;
-    const label = { primogems: '原石', intertwined_fate: '纠缠之缘', acquaint_fate: '相遇之缘' }[
-      pool.cost_currency
-    ] || pool.cost_currency;
-    el.dockCost.textContent = `单抽 ${cost} ${label} · 十连 ${ten} ${label}`;
+    // 顶栏右侧放"本卡池消耗的那种缘"，底栏左侧放另一种 —— 与实机一致
+    const cost = (state.current && state.current.cost_currency) || 'intertwined_fate';
+    applyCurrencySlot('curContext', cost, w[cost]);
+    const other = otherFate(cost);
+    applyCurrencySlot('curOther', other, w[other]);
 
-    if (pity) {
-      const p5 = pity.pity_5;
-      const hard = pool.hard_pity_5;
-      const pct = Math.min(100, (p5 / hard) * 100);
-      el.dockFill.style.width = pct + '%';
-      el.dockPity.textContent = `${p5} / ${hard}`;
+    // 祈愿按钮上的消耗图标跟着卡池走
+    document.querySelectorAll('[data-wish-icon-1], [data-wish-icon-10]').forEach((node) => {
+      node.className = 'cur__icon cur__icon--' + CURRENCY[cost].icon;
+    });
 
-      const notes = [];
-      if (pity.guaranteed_5) {
-        notes.push('<b style="color:var(--gold)">大保底</b>：下一个五星必定为 UP');
-      }
-      if (pity.epitomized && pity.epitomized.charted_item_id) {
-        notes.push(
-          `定轨「${esc(pity.epitomized.charted_item_name || '')}」` +
-            `命定值 ${pity.epitomized.fate_points}/${pity.epitomized.max_points}`
-        );
-      }
-      if (pool.lifetime_pull_cap) {
-        notes.push(`剩余 ${pity.remaining_pulls != null ? pity.remaining_pulls : '—'} 抽`);
-      }
-      el.dockNote.innerHTML = notes.join(' · ');
-    } else {
-      el.dockFill.style.width = '0%';
-      el.dockPity.textContent = '— / ' + pool.hard_pity_5;
-      el.dockNote.textContent = '';
-    }
-  }
+    // 十连消耗按卡池定价（新手池八折）
+    const ten =
+      state.current && state.current.cost_per_ten != null
+        ? state.current.cost_per_ten
+        : (state.current ? state.current.cost_per_pull * 10 : 10);
+    const costLabel = qs('[data-wish-cost-10]');
+    if (costLabel) costLabel.textContent = '× ' + ten;
 
-  function renderWallet(currency) {
-    if (!currency) return;
-    el.curPrimogems.textContent = currency.primogems;
-    el.curIntertwined.textContent = currency.intertwined_fate;
-    el.curAcquaint.textContent = currency.acquaint_fate;
     syncTopupState();
+  }
+
+  function applyCurrencySlot(kind, currency, value) {
+    const key = kind === 'curContext' ? 'Context' : 'Other';
+    const iconNode = el['cur' + key + 'Icon'];
+    const valueNode = el['cur' + key + 'Value'];
+    const box = el[kind];
+    if (!iconNode || !valueNode) return;
+    iconNode.className = 'cur__icon cur__icon--' + CURRENCY[currency].icon;
+    valueNode.textContent = value;
+    if (box) box.title = CURRENCY[currency].label;
   }
 
   /** 顶到上限时禁用「+」，避免用户点了却什么都没发生。 */
   function syncTopupState() {
     if (!el.topupToggle || !el.topup) return;
     const cap = Number(el.topup.dataset.cap) || 0;
-    const current = Number(el.curPrimogems.textContent.replace(/,/g, '')) || 0;
-    const reached = cap > 0 && current >= cap;
+    const reached = cap > 0 && state.wallet.primogems >= cap;
 
     el.topupToggle.disabled = reached;
     el.topupToggle.title = reached ? '已达上限' : '增加原石';
-
-    // 服务端在上限处是**截断**而不是拒绝，所以只要没满，任何档位都可以点
-    // （加不满也没关系，会如实告知实际加了多少）。只有已满时才禁用。
-    el.topup.querySelectorAll('[data-topup-amount]').forEach((btn) => {
-      btn.disabled = reached;
-    });
+    el.topup
+      .querySelectorAll('[data-topup-amount]')
+      .forEach((btn) => (btn.disabled = reached));
 
     if (reached) closeTopup();
   }
@@ -270,8 +385,9 @@
           method: 'POST',
           body: { amount },
         });
+        state.wallet.primogems = data.primogems;
+        renderWallet();
 
-        el.curPrimogems.textContent = data.primogems;
         el.curPrimogems.classList.remove('is-bumped');
         void el.curPrimogems.offsetWidth; // 重启动画
         el.curPrimogems.classList.add('is-bumped');
@@ -279,7 +395,7 @@
         if (data.added === 0) {
           window.App.toast(`原石已达上限 ${data.cap.toLocaleString()}`, 'info');
         } else if (data.capped) {
-          // 会被截断是因为上限，如实告知实际加了多少，而不是假装加满了
+          // 被截断是因为上限，如实告知实际加了多少，而不是假装加满
           window.App.toast(
             `已达上限，本次只增加 ${data.added.toLocaleString()}（当前 ${data.primogems.toLocaleString()}）`,
             'info',
@@ -288,8 +404,6 @@
         } else {
           window.App.toast(`原石 +${data.added.toLocaleString()}`, 'success');
         }
-
-        syncTopupState();
       } catch (err) {
         window.App.toast(err.message, 'error');
       }
@@ -297,25 +411,90 @@
   }
 
   function openTopup() {
-    if (!el.topup) return;
     el.topup.hidden = false;
     el.topupToggle.setAttribute('aria-expanded', 'true');
   }
-
   function closeTopup() {
     if (!el.topup) return;
     el.topup.hidden = true;
     el.topupToggle.setAttribute('aria-expanded', 'false');
   }
 
-  function toggleTopup() {
-    if (!el.topup) return;
-    el.topup.hidden ? openTopup() : closeTopup();
+  /* ==================================================================
+     定轨
+     ================================================================== */
+  function renderEpitomized() {
+    const pool = state.current;
+    if (!pool || !pool.epitomized_enabled) {
+      el.epitomized.hidden = true;
+      return;
+    }
+    const epi = (state.pity[pool.id] && state.pity[pool.id].epitomized) || null;
+    const points = epi ? epi.fate_points : 0;
+    const max = epi ? epi.max_points : pool.epitomized_max_points;
+    const charted = epi ? epi.charted_item_id : null;
+
+    el.epitomized.hidden = false;
+    el.epiPoints.textContent = `${points}/${max}`;
+    el.epiDial.classList.toggle('is-full', max > 0 && points >= max);
+    el.epiName.textContent = (epi && epi.charted_item_name) || '未选择';
+
+    el.epiChoices.innerHTML = pool.up_items_5
+      .map(
+        (i) => `<button type="button" class="epi-choice${i.id === charted ? ' is-active' : ''}"
+            data-epi="${i.id}">
+          <img class="epi-choice__img" src="${esc(i.image_url || PLACEHOLDER_5STAR)}" alt="">
+          <span>
+            <span class="epi-choice__name">${esc(i.name)}</span><br>
+            <span class="epi-choice__hint">★★★★★</span>
+          </span>
+          ${i.id === charted ? '<span class="epi-choice__flag">已定轨</span>' : ''}
+        </button>`
+      )
+      .join('');
   }
 
-  /* ------------------------------------------------------------------
+  async function setEpitomized(itemId) {
+    const pool = state.current;
+    if (!pool) return;
+    const epi = (state.pity[pool.id] && state.pity[pool.id].epitomized) || null;
+    // 再次点击已选中的武器 = 取消定轨
+    const isActive = epi && epi.charted_item_id === itemId;
+    try {
+      const data = await window.App.request('/api/pull/epitomized', {
+        method: 'POST',
+        body: { pool_id: pool.id, item_id: isActive ? null : itemId },
+      });
+      if (!state.pity[pool.id]) state.pity[pool.id] = {};
+      state.pity[pool.id].epitomized = data;
+      renderEpitomized();
+      closeEpiPicker();
+      window.App.toast(
+        isActive ? '已取消定轨' : '已定轨：' + (data.charted_item_name || ''),
+        'success'
+      );
+    } catch (err) {
+      window.App.toast(err.message, 'error');
+    }
+  }
+
+  function openEpiPicker() {
+    if (el.epiPicker) el.epiPicker.hidden = false;
+  }
+  function closeEpiPicker() {
+    if (el.epiPicker) el.epiPicker.hidden = true;
+  }
+
+  function openDetail() {
+    if (el.detail) el.detail.hidden = false;
+  }
+  function closeDetail() {
+    if (el.detail) el.detail.hidden = true;
+  }
+
+  /* ==================================================================
      抽卡
-     ------------------------------------------------------------------ */
+     ================================================================== */
   async function doPull(count) {
     if (state.busy || !state.current) return;
     state.busy = true;
@@ -332,13 +511,13 @@
       });
 
       // 抽卡已完成并落库。先更新数值，再放演出。
-      renderWallet(result.currency);
-      state.pity[state.current.id] = result.pity;
+      state.wallet = result.currency;
+      state.pity[result.pool_id] = result.pity;
       if (result.epitomized) {
-        state.pity[state.current.id].epitomized = result.epitomized;
+        state.pity[result.pool_id].epitomized = result.epitomized;
       }
-      renderDock(state.current, state.pity[state.current.id]);
-      renderEpitomized(state.current);
+      renderWallet();
+      renderEpitomized();
 
       await playWish(result);
       loadAiComment(result);
@@ -350,18 +529,14 @@
     }
   }
 
-  /* ------------------------------------------------------------------
+  /* ==================================================================
      演出
-     ------------------------------------------------------------------ */
-  function starClass(star) {
-    return 'star-' + star;
-  }
-
-  function cardHtml(item, hidden) {
+     ================================================================== */
+  function cardHtml(item) {
     const img = item.image_url
       ? `<img class="wish-card__img" src="${esc(item.image_url)}" alt="">`
       : '';
-    return `<div class="wish-card ${starClass(item.star)}" ${hidden ? 'hidden' : ''}>
+    return `<div class="wish-card star-${item.star}">
       ${img}
       ${item.is_up ? '<span class="wish-card__up">UP</span>' : ''}
       <div class="wish-card__body">
@@ -383,10 +558,10 @@
     await sleep(reduceMotion ? 0 : 1050);
     el.warp.hidden = true;
 
-    // ---- 阶段二：逐个翻出（五星最后单独呈现，所以先只放非五星） ----
+    // ---- 阶段二：先放非五星，五星留到最后单独呈现 ----
     const normal = result.items.filter((i) => i.star < 5);
     const fiveStars = result.items.filter((i) => i.star === 5);
-    el.grid.innerHTML = normal.map((i) => cardHtml(i, false)).join('');
+    el.grid.innerHTML = normal.map(cardHtml).join('');
 
     const cards = el.grid.querySelectorAll('.wish-card');
     for (let i = 0; i < cards.length; i++) {
@@ -417,7 +592,6 @@
   }
 
   async function loadAiComment(result) {
-    const five = result.items.find((i) => i.star === 5);
     try {
       // 只回传游戏内公开信息：卡池 id、抽数、物品名称与星级、保底进度。
       // 不含用户名、用户 id、会话等任何身份字段。
@@ -441,10 +615,8 @@
         el.ai.hidden = false;
       }
     } catch (_) {
-      // AI 不可用时静默跳过 —— 本地模板文案已在服务端兜底，
-      // 但即便这里完全失败，抽卡结果与演出也已经完整呈现。
+      // AI 不可用时静默跳过 —— 抽卡结果与演出已经完整呈现
     }
-    if (five) el.ai.dataset.hasFive = '1';
   }
 
   function closeWish() {
@@ -455,70 +627,14 @@
     el.grid.innerHTML = '';
   }
 
-  /* ------------------------------------------------------------------
-     抽屉
-     ------------------------------------------------------------------ */
-  function openSwitcher() {
-    el.poolList.innerHTML = state.pools
-      .map(
-        (p) => `<button type="button" class="pool-card${
-          state.current && p.id === state.current.id ? ' is-active' : ''
-        }" data-pool="${p.id}">
-          ${p.icon_url ? `<img class="pool-card__icon" src="${esc(p.icon_url)}" alt="">` : '<span class="pool-card__icon"></span>'}
-          <span class="pool-card__body">
-            <span class="pool-card__name">${esc(p.name)}${
-              p.is_main ? '<span class="pool-card__flag">主推</span>' : ''
-            }</span>
-            <span class="pool-card__meta">${p.hard_pity_5} 抽保底${
-              p.has_5050 ? ' · UP ' + Math.round(p.up_rate_5 * 100) + '%' : ' · 无 UP'
-            }</span>
-          </span>
-        </button>`
-      )
-      .join('');
-    el.switcher.hidden = false;
-  }
-
-  function closeSwitcher() {
-    if (el.switcher) el.switcher.hidden = true;
-  }
-
-  /* ------------------------------------------------------------------
-     事件绑定
-     ------------------------------------------------------------------ */
+  /* ==================================================================
+     事件
+     ================================================================== */
   document.addEventListener('click', async (e) => {
     const pullBtn = e.target.closest('[data-pull]');
     if (pullBtn) {
       e.preventDefault();
       await doPull(Number(pullBtn.dataset.pull));
-      return;
-    }
-
-    // ---- 增加原石 ----
-    const topupAmount = e.target.closest('[data-topup-amount]');
-    if (topupAmount) {
-      e.preventDefault();
-      await addPrimogems(Number(topupAmount.dataset.topupAmount), topupAmount);
-      return;
-    }
-    if (e.target.closest('[data-topup-toggle]')) {
-      e.preventDefault();
-      toggleTopup();
-      return;
-    }
-    // 点面板外部收起
-    if (el.topup && !el.topup.hidden && !e.target.closest('[data-topup]')) {
-      closeTopup();
-    }
-
-    if (e.target.closest('[data-open-switcher]')) {
-      e.preventDefault();
-      openSwitcher();
-      return;
-    }
-    if (e.target.closest('[data-close-switcher]')) {
-      e.preventDefault();
-      closeSwitcher();
       return;
     }
 
@@ -536,49 +652,72 @@
       return;
     }
 
+    const topupAmount = e.target.closest('[data-topup-amount]');
+    if (topupAmount) {
+      e.preventDefault();
+      await addPrimogems(Number(topupAmount.dataset.topupAmount), topupAmount);
+      return;
+    }
+
+    if (e.target.closest('[data-topup-toggle]')) {
+      e.preventDefault();
+      el.topup.hidden ? openTopup() : closeTopup();
+      return;
+    }
+    if (e.target.closest('[data-epi-dial]')) {
+      e.preventDefault();
+      openEpiPicker();
+      return;
+    }
+    if (e.target.closest('[data-open-detail]')) {
+      e.preventDefault();
+      openDetail();
+      return;
+    }
+    if (e.target.closest('[data-close-detail]')) {
+      e.preventDefault();
+      closeDetail();
+      return;
+    }
+    if (e.target.closest('[data-close-epi]')) {
+      e.preventDefault();
+      closeEpiPicker();
+      return;
+    }
     if (e.target.closest('[data-wish-skip]')) {
       e.preventDefault();
       closeWish();
+      return;
     }
+
+    // 点面板外部收起
+    if (el.topup && !el.topup.hidden && !e.target.closest('[data-topup]')) closeTopup();
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (!el.wish.hidden) closeWish();
-      else if (el.topup && !el.topup.hidden) closeTopup();
-      else closeSwitcher();
-    }
+    if (e.key !== 'Escape') return;
+    if (el.wish && !el.wish.hidden) closeWish();
+    else if (el.detail && !el.detail.hidden) closeDetail();
+    else if (el.epiPicker && !el.epiPicker.hidden) closeEpiPicker();
+    else if (el.topup && !el.topup.hidden) closeTopup();
   });
 
-  async function setEpitomized(itemId) {
-    const pool = state.current;
-    if (!pool) return;
-    // 再次点击已选中的武器 = 取消定轨
-    const epi = state.pity[pool.id] && state.pity[pool.id].epitomized;
-    const isActive = epi && epi.charted_item_id === itemId;
-    try {
-      const data = await window.App.request('/api/pull/epitomized', {
-        method: 'POST',
-        body: { pool_id: pool.id, item_id: isActive ? null : itemId },
-      });
-      if (!state.pity[pool.id]) state.pity[pool.id] = {};
-      state.pity[pool.id].epitomized = data;
-      renderEpitomized(pool);
-      renderDock(pool, state.pity[pool.id]);
-      window.App.toast(isActive ? '已取消定轨' : '已定轨：' + (data.charted_item_name || ''), 'success');
-    } catch (err) {
-      window.App.toast(err.message, 'error');
-    }
-  }
-
-  /* ------------------------------------------------------------------
+  /* ==================================================================
      启动
-     ------------------------------------------------------------------ */
+     ================================================================== */
   (async function init() {
+    // 货币真值由服务端渲染，先从 DOM 读进来（避免额外请求），再交给 renderWallet 分发到两个位置
+    const src = el.walletSource;
+    if (src) {
+      state.wallet = {
+        primogems: Number(src.dataset.primogems) || 0,
+        intertwined_fate: Number(src.dataset.intertwined) || 0,
+        acquaint_fate: Number(src.dataset.acquaint) || 0,
+      };
+    }
     try {
-      syncTopupState(); // 余额已由服务端渲染，这里只需按上限同步「+」的可用状态
-      // 货币余额已由服务端渲染进页面，这里只需加载卡池
       await loadPools();
+      renderWallet();
     } catch (err) {
       window.App.toast(err.message, 'error', 5000);
     }

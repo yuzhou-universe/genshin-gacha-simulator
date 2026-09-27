@@ -105,7 +105,10 @@ async def test_ten_pull_writes_ten_records_in_one_batch(seeded_db, user, pool_id
 
 
 async def test_records_snapshot_item_name(seeded_db, user, pool_id):
-    """记录里存物品名快照，管理员改动物品后历史依然可读。"""
+    """记录里存物品名与卡池名快照，管理员改动后历史依然可读。"""
+    from app.models import Pool
+
+    pool = await seeded_db.get(Pool, pool_id)
     result = await GachaService(seeded_db).pull(user, pool_id, 1)
 
     row = (
@@ -113,7 +116,8 @@ async def test_records_snapshot_item_name(seeded_db, user, pool_id):
     ).scalar_one()
 
     assert row.item_name_snapshot == result.items[0].name
-    assert row.pool_name_snapshot == "角色活动祈愿"
+    # 与库里的实际名字比较，而不是写死字面量 —— 默认卡池改名不该弄碎测试
+    assert row.pool_name_snapshot == pool.name
 
 
 # ===========================================================================
@@ -176,14 +180,17 @@ async def test_beginner_pool_does_not_touch_standard_pity(seeded_db, user):
     currency.acquaint_fate = 100
     await seeded_db.commit()
 
-    await GachaService(seeded_db).pull(user, beginner.id, 10)
+    # 用脚本化随机源（中性值）确保这 10 抽不出金，断言才能是确定的。
+    # 走真实随机源的话，出金位置会决定 pity_5 落在 0~9 的哪一格，
+    # 写成 "== 10 or == 0" 只是恰好覆盖了两种情形，约 6% 概率会失败。
+    await GachaService(seeded_db).pull(user, beginner.id, 10, rng=ScriptedRandomSource())
 
     from app.services.gacha_service import get_or_create_pity
 
     standard_pity = await get_or_create_pity(seeded_db, user.id, standard.pity_group)
     beginner_pity = await get_or_create_pity(seeded_db, user.id, beginner.pity_group)
 
-    assert beginner_pity.pity_5 == 10 or beginner_pity.pity_5 == 0
+    assert beginner_pity.pity_5 == 10, "新手池自身的计数应正常推进"
     assert standard_pity.pity_5 == 0, "常驻池保底不能被新手池推进"
 
 

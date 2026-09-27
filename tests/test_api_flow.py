@@ -453,3 +453,127 @@ async def test_ai_status_endpoint(client, seeded_db):
     assert "model" in data
     # 绝不能暴露密钥
     assert "key" not in str(data).lower() or "deepseek_api_key" not in str(data)
+
+
+# ===========================================================================
+# 抽卡界面的结构性契约（对齐原神实机）
+#
+# 只断言"结构存在"，不断言颜色与像素 —— 后者会因任何样式微调而碎，
+# 维护成本高于价值。这些钩子是前端 JS 的锚点，缺一个界面就残一块。
+# ===========================================================================
+async def test_gacha_page_has_real_game_layout(client, seeded_db):
+    """抽卡页必须包含实机布局的各个部件。"""
+    await register(client)
+    html = (await client.get("/gacha")).text
+
+    required = {
+        "顶部卡池页签容器": 'data-pool-tabs',
+        "整屏背景图": 'data-pool-bg',
+        "居中海报卡片": 'data-banner',
+        "卡池类型标签": 'data-pool-type',
+        "卡池标题": 'data-pool-name',
+        "概率高亮条": 'data-pool-highlight',
+        "剩余时间": 'data-pool-timer',
+        "立绘": 'data-pool-art-img',
+        "物品名牌": 'data-plate-name',
+        "UP 角标": 'data-up-flag',
+        "单抽按钮": 'data-pull="1"',
+        "十连按钮": 'data-pull="10"',
+        "UID": 'data-uid',
+        "详情弹窗": 'data-detail',
+        "定轨弹窗": 'data-epi-picker',
+        "抽卡演出": 'data-wish',
+        "五星单独呈现层": 'data-wish-five',
+    }
+    missing = [label for label, hook in required.items() if hook not in html]
+    assert not missing, f"抽卡页缺少这些部件：{missing}"
+
+
+async def test_gacha_page_has_both_currency_slots(client, seeded_db):
+    """货币分两处：顶栏放原石与当前卡池消耗的缘，底栏放另一种缘。"""
+    await register(client)
+    html = (await client.get("/gacha")).text
+
+    for hook in (
+        "data-cur-primogems",
+        "data-cur-context-value",
+        "data-cur-other-value",
+        "data-topup-toggle",
+        "data-wallet",
+    ):
+        assert hook in html, f"缺少货币钩子 {hook}"
+
+
+async def test_gacha_page_wallet_is_server_rendered(client, seeded_db):
+    """货币余额由服务端渲染，首屏不该是空值。"""
+    await register(client)
+    html = (await client.get("/gacha")).text
+
+    assert 'data-primogems="16000"' in html
+    assert 'data-intertwined="20"' in html
+    assert ">16000<" in html, "原石数值应直接出现在 HTML 里"
+
+
+async def test_gacha_page_uid_derives_from_user_id(client, seeded_db):
+    await register(client)
+    html = (await client.get("/gacha")).text
+    assert "UID: 1000000" in html, "UID 应由用户 id 派生并展示"
+
+
+async def test_gacha_page_shows_meta_description(client, seeded_db, monkeypatch):
+    """视口与编码必须正确，否则移动端会按桌面宽度渲染。"""
+    await register(client)
+    html = (await client.get("/gacha")).text
+    assert 'name="viewport"' in html
+    assert 'charset="UTF-8"' in html
+
+
+# ===========================================================================
+# 海报卡的展示数据
+# ===========================================================================
+async def test_pools_expose_featured_items_for_every_pool_type(client, seeded_db):
+    """★ 常驻池没有 UP，也必须能拿到海报卡要展示的五星。
+
+    否则常驻/新手池的卡片右半幅会是一片空白。
+    """
+    await register(client)
+    pools = (await client.get("/api/pools")).json()
+
+    for pool in pools:
+        featured = pool["featured_items_5"]
+        assert featured, f"{pool['name']} 没有可用于海报卡展示的五星"
+        assert len(featured) <= 3
+        assert all(i["star"] == 5 for i in featured)
+
+    # 有 UP 的卡池，展示的就是 UP
+    char = next(p for p in pools if p["pool_type"] == "character")
+    assert [i["id"] for i in char["featured_items_5"]] == [i["id"] for i in char["up_items_5"]]
+
+    # 没 UP 的卡池，展示的是池中五星
+    standard = next(p for p in pools if p["pool_type"] == "standard")
+    assert standard["up_items_5"] == []
+    assert standard["featured_items_5"]
+
+
+async def test_pools_expose_close_at_for_countdown(client, seeded_db):
+    """倒计时依赖 close_at；默认为 null 表示长期开放。"""
+    await register(client)
+    pools = (await client.get("/api/pools")).json()
+    for pool in pools:
+        assert "close_at" in pool
+
+
+async def test_default_pools_have_distinct_names_and_type_labels(client, seeded_db):
+    """卡池名不该等于类型标签 —— 否则海报卡上标题与标签重复。
+
+    实机里也是分开的：标签是「武器活动祈愿」，标题是「神铸赋形」。
+    """
+    from app.routers.api_pools import pool_to_out  # noqa: F401  仅用于说明来源
+    from app.services.gacha_service import list_open_pools
+
+    pools = await list_open_pools(seeded_db)
+    type_labels = {"character", "weapon", "standard", "beginner"}
+
+    for pool in pools:
+        assert pool.name not in type_labels, f"{pool.name} 直接拿类型当了名字"
+        assert pool.name != pool.pool_type

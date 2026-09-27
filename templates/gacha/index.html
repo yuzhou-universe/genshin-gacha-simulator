@@ -1,127 +1,155 @@
 {% extends "base.html" %}
 {% block title %}祈愿 · {{ app_name }}{% endblock %}
-{% block body_class %}gacha-body{% endblock %}
-{% block main_class %}gacha-stage{% endblock %}
+{% block body_class %}wish-body{% endblock %}
+{% block main_class %}wish-page{% endblock %}
 {% block head %}<link rel="stylesheet" href="/static/css/gacha.css">{% endblock %}
 
+{# 抽卡界面用游戏式的全屏顶栏，不渲染站点顶栏 #}
+{% block header %}{% endblock %}
+
 {% block content %}
-<!-- ================= 主区域：底部大图 ================= -->
-<div class="gacha-art" data-pool-art>
-  <img class="gacha-art__img" data-pool-bg src="/static/img/banner-default.svg" alt="">
-  <div class="gacha-art__fade" aria-hidden="true"></div>
+<!-- ================= 全屏背景（管理员为卡池设置，未设则内置晴空） ================= -->
+<div class="sky" aria-hidden="true">
+  <img class="sky__img" data-pool-bg src="/static/img/banner-default.svg" alt="">
+  <div class="sky__haze"></div>
 </div>
 
-<div class="gacha-head">
-  <div class="gacha-head__banner">
-    <img data-pool-banner hidden alt="">
-  </div>
+<!-- ================= 顶栏 ================= -->
+<header class="wish-top">
+  <div class="wish-top__brand"><span class="wish-top__mark">✦</span>祈愿</div>
 
-  <h1 class="gacha-head__title" data-pool-name>加载中…</h1>
-  <p class="gacha-head__desc" data-pool-desc></p>
+  <!-- 卡池页签：由 JS 依据 /api/pools 渲染 -->
+  <nav class="pool-tabs" data-pool-tabs aria-label="切换卡池"></nav>
 
-  <!-- UP 内容 -->
-  <div class="up-strip" data-pool-up hidden>
-    <div class="up-strip__label">UP</div>
-    <div class="up-strip__items" data-pool-up-items></div>
-  </div>
+  <div class="wish-top__right">
+    <!-- 原石 + 自助增加 -->
+    <div class="cur cur--topup" title="原石">
+      <span class="cur__icon cur__icon--gem"></span>
+      <span class="cur__value" data-cur-primogems>{{ current_user.primogems }}</span>
+      <button type="button" class="cur__add" data-topup-toggle aria-label="增加原石"
+              aria-expanded="false"
+              {% if current_user.primogems >= primogem_topup_cap %}disabled title="已达上限"{% endif %}>+</button>
 
-  <!-- 概率说明 -->
-  <details class="rates">
-    <summary class="rates__summary">概率说明</summary>
-    <div class="rates__body" data-pool-rates></div>
-  </details>
-
-  <!-- 定轨面板（仅武器池） -->
-  <div class="epitomized" data-epitomized hidden>
-    <div class="epitomized__head">
-      <span class="epitomized__title">神铸定轨</span>
-      <span class="epitomized__points" data-epi-points></span>
+      <div class="topup" data-topup hidden data-cap="{{ primogem_topup_cap }}">
+        <div class="topup__title">增加原石</div>
+        <div class="topup__options">
+          {% for option in primogem_topup_options %}
+          <button type="button" class="topup__option" data-topup-amount="{{ option }}">+{{ option }}</button>
+          {% endfor %}
+        </div>
+        <div class="topup__cap">余额上限 {{ "{:,}".format(primogem_topup_cap) }}</div>
+      </div>
     </div>
-    <div class="epitomized__choices" data-epi-choices></div>
-    <p class="epitomized__hint">
-      命定值满后，下一个五星武器必定是定轨武器。换定轨或取消定轨会把命定值清零，
-      重选同一把则保留。
-    </p>
+
+    <!-- 当前卡池消耗的那种缘：随卡池切换而变，与实机一致 -->
+    <div class="cur" data-cur-context title="本卡池消耗">
+      <span class="cur__icon" data-cur-context-icon></span>
+      <span class="cur__value" data-cur-context-value>{{ current_user.intertwined_fate }}</span>
+    </div>
+
+    <button type="button" class="wish-top__exit" data-logout title="退出登录" aria-label="退出登录">✕</button>
   </div>
-</div>
+</header>
 
-<!-- ================= 固定操作 UI ================= -->
-<aside class="wish-dock">
-  <div class="wish-dock__inner">
+<!-- ================= 居中海报卡片 ================= -->
+<main class="stage">
+  <section class="banner" data-banner>
+    <!-- 左：文案栏 -->
+    <div class="banner__text">
+      <span class="banner__tag" data-pool-type>加载中</span>
+      <h1 class="banner__title" data-pool-name>加载中…</h1>
 
-    <!-- 货币：由服务端直接渲染，避免首屏空值与额外请求 -->
-    <div class="wallet">
-      <div class="wallet__item wallet__item--topup" title="原石">
-        <span class="wallet__icon wallet__icon--gem"></span>
-        <span class="wallet__value" data-cur-primogems>{{ current_user.primogems }}</span>
+      <p class="banner__lead" data-pool-lead hidden>获取概率提升！</p>
+      {# 四星保底对所有卡池都成立，因此这条恒定展示，不设 hidden #}
+      <p class="banner__highlight" data-pool-highlight>每十次祈愿必出四星或以上物品。</p>
+      <p class="banner__desc" data-pool-desc></p>
 
-        <button type="button" class="wallet__add" data-topup-toggle
-                aria-label="增加原石" aria-expanded="false"
-                {% if current_user.primogems >= primogem_topup_cap %}disabled title="已达上限"{% endif %}>+</button>
-
-        <!-- 增加原石：档位由服务端下发，与服务端白名单保持一致 -->
-        <div class="topup" data-topup hidden data-cap="{{ primogem_topup_cap }}">
-          <div class="topup__title">增加原石</div>
-          <div class="topup__options">
-            {% for option in primogem_topup_options %}
-            <button type="button" class="topup__option" data-topup-amount="{{ option }}">
-              +{{ option }}
-            </button>
-            {% endfor %}
-          </div>
-          <div class="topup__cap">余额上限 {{ "{:,}".format(primogem_topup_cap) }}</div>
+      <!-- 神铸定轨（仅武器池） -->
+      <div class="path" data-epitomized hidden>
+        <button type="button" class="path__dial" data-epi-dial
+                title="点击选择定轨武器">
+          <span class="path__ring" aria-hidden="true"></span>
+          <span class="path__count" data-epi-points>0/1</span>
+        </button>
+        <div class="path__info">
+          <span class="path__label">当前定轨</span>
+          <span class="path__name" data-epi-name>未选择</span>
         </div>
       </div>
 
-      <div class="wallet__item" title="纠缠之缘">
-        <span class="wallet__icon wallet__icon--intertwined"></span>
-        <span class="wallet__value" data-cur-intertwined>{{ current_user.intertwined_fate }}</span>
-      </div>
-      <div class="wallet__item" title="相遇之缘">
-        <span class="wallet__icon wallet__icon--acquaint"></span>
-        <span class="wallet__value" data-cur-acquaint>{{ current_user.acquaint_fate }}</span>
-      </div>
+      <div class="banner__timer" data-pool-timer hidden></div>
     </div>
 
-    <!-- 卡池名 + 保底进度 -->
-    <div class="pity-bar">
-      <div class="pity-bar__row">
-        <span class="pity-bar__pool" data-dock-pool>—</span>
-        <span class="pity-bar__count" data-dock-pity>—</span>
+    <!-- 右：立绘与名牌 -->
+    <div class="banner__art">
+      <img class="banner__art-img" data-pool-art-img alt="">
+      <div class="plate" data-plate hidden>
+        <span class="plate__name" data-plate-name></span>
+        <span class="plate__stars" data-plate-stars></span>
       </div>
-      <div class="pity-bar__track">
-        <div class="pity-bar__fill" data-dock-fill style="width:0%"></div>
-      </div>
-      <div class="pity-bar__note" data-dock-note></div>
+      <span class="up-flag" data-up-flag hidden>UP!</span>
     </div>
+  </section>
+</main>
 
-    <!-- 操作按钮 -->
-    <div class="wish-actions">
-      <button type="button" class="btn btn--ghost btn--sm" data-open-switcher>
-        切换卡池
-      </button>
-      <button type="button" class="btn btn--primary" data-pull="1">单 抽</button>
-      <button type="button" class="btn btn--primary" data-pull="10">十 连</button>
-      <a class="btn btn--ghost btn--sm" href="/history">历史记录</a>
+<!-- ================= 底栏 ================= -->
+<footer class="wish-bottom">
+  <div class="wish-bottom__left">
+    <!-- 另一种缘（非本卡池消耗的那种） -->
+    <div class="cur cur--mini" data-cur-other title="">
+      <span class="cur__icon" data-cur-other-icon></span>
+      <span class="cur__value" data-cur-other-value>{{ current_user.acquaint_fate }}</span>
     </div>
-
-    <div class="wish-dock__cost" data-dock-cost></div>
+    <button type="button" class="pill" data-open-detail>详情</button>
+    <a class="pill" href="/history">历史记录</a>
   </div>
-</aside>
 
-<!-- ================= 卡池切换抽屉 ================= -->
-<div class="drawer" data-switcher hidden>
-  <div class="drawer__mask" data-close-switcher></div>
-  <div class="drawer__panel">
-    <div class="drawer__head">
-      <span>选择卡池</span>
-      <button type="button" class="drawer__close" data-close-switcher aria-label="关闭">×</button>
+  <div class="wish-bottom__actions">
+    <button type="button" class="wish-btn" data-pull="1">
+      <span class="wish-btn__label">祈愿1次</span>
+      <span class="wish-btn__cost"><i class="cur__icon" data-wish-icon-1></i>× 1</span>
+    </button>
+    <button type="button" class="wish-btn wish-btn--ten" data-pull="10">
+      <span class="wish-btn__label">祈愿10次</span>
+      <span class="wish-btn__cost"><i class="cur__icon" data-wish-icon-10></i><span data-wish-cost-10>× 10</span></span>
+    </button>
+  </div>
+
+  <div class="wish-bottom__uid" data-uid>UID: {{ 100000000 + current_user.id }}</div>
+</footer>
+
+<!-- ================= 详情弹窗 ================= -->
+<div class="sheet" data-detail hidden>
+  <div class="sheet__mask" data-close-detail></div>
+  <div class="sheet__panel">
+    <div class="sheet__head">
+      <span>祈愿详情</span>
+      <button type="button" class="sheet__close" data-close-detail aria-label="关闭">×</button>
     </div>
-    <div class="drawer__list" data-pool-list></div>
+    <div class="sheet__body" data-pool-detail></div>
   </div>
 </div>
 
-<!-- ================= 抽卡演出（所有卡池共用同一套动画） ================= -->
+<!-- ================= 定轨选择弹窗 ================= -->
+<div class="sheet" data-epi-picker hidden>
+  <div class="sheet__mask" data-close-epi></div>
+  <div class="sheet__panel sheet__panel--narrow">
+    <div class="sheet__head">
+      <span>神铸定轨</span>
+      <button type="button" class="sheet__close" data-close-epi aria-label="关闭">×</button>
+    </div>
+    <div class="sheet__body">
+      <p class="sheet__note">
+        选定一把 UP 五星武器后，抽到其它五星武器会累积命定值；
+        命定值满后，下一个五星武器必定是定轨武器。
+        更换或取消定轨会清零命定值，重选同一把则保留。
+      </p>
+      <div class="epi-choices" data-epi-choices></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 抽卡演出（所有卡池共用同一套，不随卡池变化） ================= -->
 <div class="wish" data-wish hidden>
   <div class="wish__warp" data-wish-warp>
     <div class="warp">
@@ -154,6 +182,12 @@
     <button type="button" class="btn btn--ghost btn--sm" data-wish-skip>跳过 / 关闭</button>
   </div>
 </div>
+
+{# 货币真值来源：由服务端渲染，JS 读取后填充顶栏与底栏的两个位置，避免额外请求 #}
+<div hidden data-wallet
+     data-primogems="{{ current_user.primogems }}"
+     data-intertwined="{{ current_user.intertwined_fate }}"
+     data-acquaint="{{ current_user.acquaint_fate }}"></div>
 {% endblock %}
 
 {% block scripts %}

@@ -151,7 +151,10 @@ def build_default_pools() -> list[dict[str, Any]]:
         # ------------------------------------------------------------------
         {
             "key": "character-event",
-            "name": "角色活动祈愿",
+            # 名称是「本期卡池的名字」，类型另由 pool_type 展示（界面上的类型标签）。
+            # 另外三个默认卡池都遵循这个约定（神铸赋形 / 奔行世间 / 初行者推荐祈愿），
+            # 这里若拿类型当名字，海报卡上的标签与标题就会重复。
+            "name": "杯装之诗",
             "pool_type": PoolType.CHARACTER,
             "pity_group": PoolType.CHARACTER,
             "description": "限定五星角色概率 UP。保底计数与其它角色活动祈愿互通。",
@@ -189,7 +192,8 @@ def build_default_pools() -> list[dict[str, Any]]:
         # ------------------------------------------------------------------
         {
             "key": "weapon-event",
-            "name": "武器活动祈愿",
+            # 与实机一致：武器活动祈愿的标题固定是「神铸赋形」
+            "name": "神铸赋形",
             "pool_type": PoolType.WEAPON,
             "pity_group": PoolType.WEAPON,
             "description": "限定五星武器概率 UP，可定轨指定武器。命定值满后必出定轨武器。",

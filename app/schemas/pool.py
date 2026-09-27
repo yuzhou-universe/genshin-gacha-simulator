@@ -59,3 +59,6 @@ class PoolOut(BaseModel):
     #: UP 内容
     up_items_5: list[PoolItemOut] = []
     up_items_4: list[PoolItemOut] = []
+    #: 海报卡上展示的五星。有 UP 就用 UP；常驻/新手池没有 UP，
+    #: 则取池中前几件五星 —— 否则这两类卡池的海报卡会是一片空白。
+    featured_items_5: list[PoolItemOut] = []

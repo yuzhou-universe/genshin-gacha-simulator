@@ -33,37 +33,6 @@
 }
 
 /* --------------------------------------------------------------------------
-   统计卡片
-   -------------------------------------------------------------------------- */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
-  gap: 12px;
-}
-
-.stat-card {
-  padding: 14px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--gold-line);
-  background: linear-gradient(160deg, var(--bg-panel), var(--bg-deep));
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.stat-card__label { color: var(--text-faint); font-size: 12px; letter-spacing: 0.06em; }
-.stat-card__value {
-  font-family: var(--font-display);
-  font-size: 22px;
-  color: var(--gold-pale);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-.stat-card--five { border-color: rgba(255, 177, 63, 0.55); }
-.stat-card--five .stat-card__value { color: var(--star-5); }
-.stat-card--four { border-color: rgba(162, 86, 225, 0.5); }
-.stat-card--four .stat-card__value { color: var(--star-4); }
-
-/* --------------------------------------------------------------------------
    保底进度
    -------------------------------------------------------------------------- */
 .progress-list { display: flex; flex-direction: column; gap: 14px; }
@@ -74,13 +43,13 @@
   gap: 14px;
   align-items: center;
 }
-.progress-row__name { color: var(--gold-pale); font-size: 13.5px; }
-.progress-row__name small { display: block; color: var(--text-faint); font-size: 11px; margin-top: 2px; }
+.progress-row__name { color: var(--ink); font-size: 13.5px; }
+.progress-row__name small { display: block; color: var(--ink-faint); font-size: 11px; margin-top: 2px; }
 
 .progress-row__track {
   height: 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(63, 74, 90, 0.12);
   overflow: hidden;
 }
 .progress-row__fill {
@@ -94,8 +63,8 @@
   background: linear-gradient(90deg, #6f4fd0, var(--star-4));
   box-shadow: 0 0 9px rgba(162, 86, 225, 0.6);
 }
-.progress-row__meta { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.progress-row__meta b { color: var(--gold); }
+.progress-row__meta { font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.progress-row__meta b { color: var(--gold-deep); }
 
 /* --------------------------------------------------------------------------
    记录表
@@ -108,7 +77,7 @@
   padding-bottom: 10px;
   border-bottom: 1px solid var(--gold-line);
 }
-.records__count { color: var(--text-faint); font-size: 12.5px; }
+.records__count { color: var(--ink-faint); font-size: 12.5px; }
 
 .records__wrap { overflow-x: auto; }
 
@@ -120,7 +89,7 @@
 .records th {
   text-align: left;
   padding: 9px 10px;
-  color: var(--text-faint);
+  color: var(--ink-faint);
   font-weight: 500;
   font-size: 12px;
   letter-spacing: 0.05em;
@@ -130,15 +99,15 @@
 .records td {
   padding: 8px 10px;
   border-bottom: 1px solid rgba(211, 188, 142, 0.13);
-  color: var(--text);
+  color: var(--ink);
   white-space: nowrap;
 }
 .records tbody tr:hover { background: rgba(255, 204, 77, 0.05); }
 .records tbody tr:last-child td { border-bottom: none; }
 .ta-c { text-align: center; }
 
-.records .cell-time { color: var(--text-dim); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.records .cell-pool { color: var(--text-dim); font-size: 12.5px; }
+.records .cell-time { color: var(--ink-dim); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.records .cell-pool { color: var(--ink-dim); font-size: 12.5px; }
 
 .item-name { display: inline-flex; align-items: center; gap: 7px; }
 .item-name__dot {
@@ -151,7 +120,7 @@
 }
 .item-name--five { color: var(--star-5); font-weight: 600; }
 .item-name--four { color: var(--star-4); }
-.item-name--three { color: var(--text-dim); }
+.item-name--three { color: var(--ink-dim); }
 
 .records .thumb {
   width: 30px;
@@ -174,9 +143,9 @@
   padding-top: 14px;
   border-top: 1px solid var(--gold-line);
 }
-.pager__info { color: var(--text-dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+.pager__info { color: var(--ink-dim); font-size: 13px; font-variant-numeric: tabular-nums; }
 
-.empty { text-align: center; color: var(--text-faint); padding: 34px 0; margin: 0; }
+.empty { text-align: center; color: var(--ink-faint); padding: 34px 0; margin: 0; }
 
 /* --------------------------------------------------------------------------
    移动端
@@ -212,11 +181,11 @@
 }
 .ai-summary__text {
   margin: 0;
-  color: var(--gold-pale);
+  color: var(--ink);
   font-size: 14.5px;
   line-height: 1.8;
   min-height: 1.8em;
 }
 /* 模型生成与本地模板降级用左侧色条区分，便于排查 AI 是否真的生效 */
 .ai-summary__text[data-source="model"] { border-left: 3px solid var(--gold); padding-left: 12px; }
-.ai-summary__text[data-source="local"] { border-left: 3px solid var(--text-faint); padding-left: 12px; color: var(--text-dim); }
+.ai-summary__text[data-source="local"] { border-left: 3px solid var(--ink-faint); padding-left: 12px; color: var(--ink-dim); }
