@@ -28,6 +28,30 @@ APP_TITLE = "原神风格抽卡模拟系统"
 DEFAULT_PORT = 8000
 
 
+def ensure_output_streams(data_dir) -> None:
+    """把 std 流接到日志文件上。
+
+    **打包成窗口程序（console=False）后，``sys.stdout`` 与 ``sys.stderr`` 都是
+    ``None``。** 此时任何 ``print`` 或库的日志输出（uvicorn 的 logging、
+    Python 的 warnings）都会抛 ``AttributeError: 'NoneType' object has no
+    attribute 'write'``，把整个进程打崩 —— 而且窗口模式下看不到任何报错。
+
+    所以启动最早期就把它们接到数据目录的日志文件，既避免崩溃，
+    也让出问题时有一份可查的记录。
+    """
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        stream = open(data_dir / "launcher.log", "a", encoding="utf-8", buffering=1)
+    except OSError:
+        return
+    if sys.stdout is None:
+        sys.stdout = stream
+    if sys.stderr is None:
+        sys.stderr = stream
+
+
 def find_free_port(preferred: int = DEFAULT_PORT, attempts: int = 20) -> int:
     """找一个能用的端口。
 
@@ -206,7 +230,29 @@ def run_gui(creds: RuntimeCredentials, host: str, port: int) -> int:
         status.configure(text="正在停止…", foreground="#b8862c")
         root.after(120, root.destroy)
 
+    def on_window_close():
+        """关窗口 = 停服务。必须确认，否则用户会以为这只是个无关的提示框。
+
+        之前没有这一步：用户点右上角的 ×，服务就悄悄停了，
+        浏览器里的页面随即变成「127.0.0.1 拒绝连接」，
+        而且完全看不出是自己关了那个小窗口造成的。
+        """
+        if messagebox.askokcancel(
+            "确定要退出吗？",
+            f"关闭这个窗口会同时停止服务，浏览器里的抽卡界面将无法访问。\n\n"
+            f"下次使用需要重新打开「{APP_TITLE}」。\n\n确定退出吗？",
+            parent=root,
+        ):
+            stop_and_exit()
+
+    root.protocol("WM_DELETE_WINDOW", on_window_close)
+
     ttk.Button(frame, text="停止并退出", command=stop_and_exit).pack(anchor="e")
+    ttk.Label(
+        frame,
+        text="提示：使用期间请不要关闭本窗口，否则网页会打不开。",
+        foreground="#cf4a44",
+    ).pack(anchor="e", pady=(6, 0))
 
     server = ServerThread(app, host, port)
     server.start()
@@ -266,6 +312,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--console", action="store_true", help="不开窗口，只用终端")
     parser.add_argument("--no-browser", action="store_true", help="启动后不自动开浏览器")
     args = parser.parse_args(argv)
+
+    # 最先处理输出流：窗口模式下 stdout/stderr 是 None，
+    # 后面任何一行日志都可能把进程打崩，且看不到任何提示。
+    ensure_output_streams(DATA_DIR)
 
     # ★ 顺序不能动：先写 .env，再导入应用
     creds = ensure_runtime_env(DATA_DIR)
